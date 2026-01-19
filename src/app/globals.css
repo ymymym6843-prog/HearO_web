@@ -1,0 +1,253 @@
+@import "tailwindcss";
+
+/* HearO Brand Design System */
+:root {
+  /* Brand Colors */
+  --hearo-primary: #e94560;
+  --hearo-primary-light: #ff6b8a;
+  --hearo-primary-dark: #c73e54;
+
+  /* Background Colors (Dark Theme) */
+  --background: #0A0A0F;
+  --background-secondary: #1A1A22;
+  --background-tertiary: #2A2A35;
+  --background-hover: #3A3A45;
+
+  /* Text Colors */
+  --foreground: #FFFFFF;
+  --foreground-secondary: #E5E7EB;
+  --foreground-tertiary: #B8BFC9;
+  --foreground-hint: #9CA3AF;
+  --foreground-disabled: #7B8494;
+
+  /* State Colors */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  /* Worldview Colors (HearO-v2와 동일) */
+  --fantasy-primary: #8B5CF6;
+  --fantasy-secondary: #A78BFA;
+  --fantasy-accent: #F59E0B;
+  --fantasy-background: #1F1B2E;
+  --fantasy-surface: #2D2640;
+
+  --sports-primary: #F97316;
+  --sports-secondary: #FB923C;
+  --sports-accent: #FBBF24;
+  --sports-background: #1C1917;
+  --sports-surface: #292524;
+
+  --idol-primary: #EC4899;
+  --idol-secondary: #F472B6;
+  --idol-accent: #A855F7;
+  --idol-background: #1F1625;
+  --idol-surface: #2D1B3D;
+
+  --sf-primary: #06B6D4;
+  --sf-secondary: #22D3EE;
+  --sf-accent: #3B82F6;
+  --sf-background: #0F1419;
+  --sf-surface: #1A1F2E;
+
+  --zombie-primary: #84CC16;
+  --zombie-secondary: #A3E635;
+  --zombie-accent: #EF4444;
+  --zombie-background: #1A1A1A;
+  --zombie-surface: #262626;
+
+  --spy-primary: #1F2937;
+  --spy-secondary: #374151;
+  --spy-accent: #DC2626;
+  --spy-background: #0A0A0A;
+  --spy-surface: #171717;
+
+  /* Grade Colors */
+  --grade-s: #FFD700;
+  --grade-a: #FF6B6B;
+  --grade-b: #4ECDC4;
+  --grade-c: #45B7D1;
+  --grade-d: #96CEB4;
+
+  /* Typography */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-4xl: 36px;
+
+  /* Spacing */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 20px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Touch Targets (WCAG AA) */
+  --touch-minimum: 44px;
+  --touch-comfortable: 48px;
+  --touch-large: 56px;
+
+  /* Animation */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--hearo-primary);
+  --color-primary-light: var(--hearo-primary-light);
+  --color-primary-dark: var(--hearo-primary-dark);
+  --font-sans: var(--font-pretendard), system-ui, sans-serif;
+}
+
+/* Pretendard Font */
+@font-face {
+  font-family: 'Pretendard';
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+  font-display: swap;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Pretendard', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--background-hover);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground-hint);
+}
+
+/* Utility Classes */
+.btn-primary {
+  background: var(--hearo-primary);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  min-height: var(--touch-minimum);
+  transition: all var(--duration-fast) ease;
+}
+
+.btn-primary:hover {
+  background: var(--hearo-primary-light);
+  transform: scale(1.02);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.card {
+  background: var(--background-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--background-tertiary);
+}
+
+.card:hover {
+  border-color: var(--background-hover);
+}
+
+/* Worldview Theme Classes */
+.theme-fantasy {
+  --theme-primary: var(--fantasy-primary);
+  --theme-secondary: var(--fantasy-secondary);
+  --theme-accent: var(--fantasy-accent);
+  --theme-background: var(--fantasy-background);
+}
+
+.theme-sports {
+  --theme-primary: var(--sports-primary);
+  --theme-secondary: var(--sports-secondary);
+  --theme-accent: var(--sports-accent);
+  --theme-background: var(--sports-background);
+}
+
+.theme-idol {
+  --theme-primary: var(--idol-primary);
+  --theme-secondary: var(--idol-secondary);
+  --theme-accent: var(--idol-accent);
+  --theme-background: var(--idol-background);
+}
+
+.theme-sf {
+  --theme-primary: var(--sf-primary);
+  --theme-secondary: var(--sf-secondary);
+  --theme-accent: var(--sf-accent);
+  --theme-background: var(--sf-background);
+}
+
+.theme-zombie {
+  --theme-primary: var(--zombie-primary);
+  --theme-secondary: var(--zombie-secondary);
+  --theme-accent: var(--zombie-accent);
+  --theme-background: var(--zombie-background);
+}
+
+.theme-spy {
+  --theme-primary: var(--spy-primary);
+  --theme-secondary: var(--spy-secondary);
+  --theme-accent: var(--spy-accent);
+  --theme-background: var(--spy-background);
+}
+
+/* Animation Keyframes */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--theme-primary, var(--hearo-primary));
+  }
+  50% {
+    box-shadow: 0 0 40px var(--theme-primary, var(--hearo-primary));
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in var(--duration-normal) ease-out;
+}
