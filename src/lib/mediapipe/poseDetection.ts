@@ -97,6 +97,8 @@ export async function initializePoseDetection(
     `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`
   );
 
+  // PoseLandmarker는 기본적으로 worldLandmarks를 출력함 (별도 옵션 불필요)
+  // result.worldLandmarks에서 3D 월드 좌표 접근 가능
   poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
     baseOptions: {
       modelAssetPath: MODEL_URLS[currentConfig.modelType],
@@ -107,7 +109,6 @@ export async function initializePoseDetection(
     minPoseDetectionConfidence: currentConfig.minDetectionConfidence,
     minPosePresenceConfidence: currentConfig.minPresenceConfidence,
     minTrackingConfidence: currentConfig.minTrackingConfidence,
-    outputWorldLandmarks: true, // 3D 월드 좌표 출력 활성화 (VRM 동기화 필수)
   });
 
   console.info(`MediaPipe initialized with ${currentConfig.modelType} model`);

@@ -1116,30 +1116,42 @@ export function applyPoseToVRM(
   // ========================================
   const ARM_REST_OFFSET = 1.25; // Kalidokit의 "팔 내림" 기본값
 
-  // 팔 적용 (T-pose 보정 적용)
+  // 팔 적용 (T-pose 보정 + 축 변환)
+  // Kalidokit → VRM 축 매핑:
+  // - X축: 팔의 전후 회전 (앞으로/뒤로) → 반전 필요 (Kalidokit과 VRM 방향 반대)
+  // - Y축: 팔의 비틀림
+  // - Z축: 팔의 상하 회전 (T-pose 기준) → ARM_REST_OFFSET 보정
   if (poseRig.LeftUpperArm) {
-    // 왼팔: z 값에서 기본 오프셋을 빼서 T-pose 기준으로 변환
     const correctedLeftArm = {
-      x: poseRig.LeftUpperArm.x,
+      x: -poseRig.LeftUpperArm.x,  // X축 반전: 앞으로 들면 앞으로 가도록
       y: poseRig.LeftUpperArm.y,
-      z: poseRig.LeftUpperArm.z - ARM_REST_OFFSET, // 보정: 1.25 → 0
+      z: poseRig.LeftUpperArm.z - ARM_REST_OFFSET,
     };
     applyRotation(vrm, BoneNames.LeftUpperArm, correctedLeftArm, 'LeftUpperArm');
   }
   if (poseRig.LeftLowerArm) {
-    applyRotation(vrm, BoneNames.LeftLowerArm, poseRig.LeftLowerArm, 'LeftLowerArm');
+    const correctedLeftLowerArm = {
+      x: -poseRig.LeftLowerArm.x,  // 하완도 X축 반전
+      y: poseRig.LeftLowerArm.y,
+      z: poseRig.LeftLowerArm.z,
+    };
+    applyRotation(vrm, BoneNames.LeftLowerArm, correctedLeftLowerArm, 'LeftLowerArm');
   }
   if (poseRig.RightUpperArm) {
-    // 오른팔: z 값에 기본 오프셋을 더해서 T-pose 기준으로 변환
     const correctedRightArm = {
-      x: poseRig.RightUpperArm.x,
+      x: -poseRig.RightUpperArm.x,  // X축 반전
       y: poseRig.RightUpperArm.y,
-      z: poseRig.RightUpperArm.z + ARM_REST_OFFSET, // 보정: -1.25 → 0
+      z: poseRig.RightUpperArm.z + ARM_REST_OFFSET,
     };
     applyRotation(vrm, BoneNames.RightUpperArm, correctedRightArm, 'RightUpperArm');
   }
   if (poseRig.RightLowerArm) {
-    applyRotation(vrm, BoneNames.RightLowerArm, poseRig.RightLowerArm, 'RightLowerArm');
+    const correctedRightLowerArm = {
+      x: -poseRig.RightLowerArm.x,  // 하완도 X축 반전
+      y: poseRig.RightLowerArm.y,
+      z: poseRig.RightLowerArm.z,
+    };
+    applyRotation(vrm, BoneNames.RightLowerArm, correctedRightLowerArm, 'RightLowerArm');
   }
 
   // 다리 적용
