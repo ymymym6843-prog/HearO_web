@@ -1,9 +1,14 @@
 /**
- * Kalidokit + VRM 통합 (Phase 1 + Phase 2)
+ * Kalidokit + VRM 통합 (T-pose 최적화)
  * MediaPipe 랜드마크를 VRM 캐릭터에 적용
  *
- * Phase 1: Euler 기반 오프셋 + Z축 안정화
- * Phase 2: Quaternion SLERP + 자세 맞추기 오프셋
+ * [T-pose Rest Pose 기준]
+ * - VRM 모델의 rest-pose가 T-pose인 경우 최적화
+ * - Kalidokit은 기본적으로 T-pose 기준으로 설계됨
+ * - 별도의 오프셋 없이 바로 적용 가능
+ *
+ * Phase 1: Euler 기반 직접 적용 (T-pose 권장)
+ * Phase 2: Quaternion SLERP + 자세 맞추기 오프셋 (A-pose 등 커스텀 필요 시)
  *
  * VRM 1.0 호환 (@pixiv/three-vrm v3.x)
  *
@@ -22,8 +27,9 @@ import type { Landmark } from '@/types/pose';
 // 상수 정의
 // ============================================================================
 
-// A/T-pose 판정 임계값 (개발자 진단용)
-const TPOSE_THRESHOLD = 0.25;  // avgAbsZ < 0.25 → T-pose로 추정
+// T-pose 판정 임계값 (개발자 진단용)
+// VRM 모델 rest-pose가 T-pose인 경우 Kalidokit 기본값으로 잘 작동함
+const TPOSE_THRESHOLD = 0.25;  // avgAbsZ < 0.25 → T-pose로 추정 (권장)
 const APOSE_MIN = 0.35;        // avgAbsZ >= 0.35 → A-pose 시작
 const APOSE_MAX = 1.20;        // avgAbsZ <= 1.20 → A-pose 범위
 
@@ -157,10 +163,12 @@ const BoneNames = {
 // 전역 상태
 // ============================================================================
 
-// 기본 설정
+// 기본 설정 (T-pose rest-pose 최적화)
 const defaultConfig: AnimatorConfig = {
+  // T-pose VRM은 Phase 1 권장 (Kalidokit 기본값과 호환)
   phase: 1,
 
+  // T-pose에서는 오프셋 불필요 (모두 0)
   aPoseOffset: {
     LeftUpperArm: { x: 0, y: 0, z: 0 },
     RightUpperArm: { x: 0, y: 0, z: 0 },
@@ -168,12 +176,13 @@ const defaultConfig: AnimatorConfig = {
     RightLowerArm: { x: 0, y: 0, z: 0 },
   },
 
+  // Z축 안정화 (T-pose에 맞게 조정)
   zStabilization: {
     enabled: true,
-    emaAlpha: 0.3,
-    jumpThreshold: 0.5,
-    clampMin: -1.5,
-    clampMax: 1.5,
+    emaAlpha: 0.4,          // 빠른 반응 (T-pose는 오프셋 없어 안정적)
+    jumpThreshold: 0.6,     // 자연스러운 움직임 허용
+    clampMin: -2.0,         // T-pose 팔 범위 확장
+    clampMax: 2.0,
   },
 
   xyStabilization: {
@@ -195,9 +204,10 @@ const defaultConfig: AnimatorConfig = {
     stabilityRequired: 10,     // 10프레임 연속 안정 필요
   },
 
-  dampening: 0.5,
+  // T-pose는 반응성 높여도 안정적
+  dampening: 0.6,
   debug: true,
-  debugInterval: 100,
+  debugInterval: 60,  // 더 자주 로그 출력 (테스트용)
 };
 
 let config: AnimatorConfig = JSON.parse(JSON.stringify(defaultConfig));
@@ -570,14 +580,15 @@ export function diagnoseVRMRestPose(vrm: VRM): {
   let estimatedType: 'A-pose' | 'T-pose' | 'unknown' = 'unknown';
   let devRecommendation = '';
 
-  if (avgAbsZ >= APOSE_MIN && avgAbsZ <= APOSE_MAX) {
+  if (avgAbsZ < TPOSE_THRESHOLD) {
+    // T-pose 감지 (권장)
+    estimatedType = 'T-pose';
+    devRecommendation = `[DEV] ✓ T-pose detected (avgAbsZ=${avgAbsZ.toFixed(3)}). ` +
+      `Phase 1 recommended - Kalidokit defaults work perfectly!`;
+  } else if (avgAbsZ >= APOSE_MIN && avgAbsZ <= APOSE_MAX) {
     estimatedType = 'A-pose';
     devRecommendation = `[DEV] A-pose detected (avgAbsZ=${avgAbsZ.toFixed(3)}). ` +
       `Use Phase 2 with startPoseAlignment() for automatic offset estimation.`;
-  } else if (avgAbsZ < TPOSE_THRESHOLD) {
-    estimatedType = 'T-pose';
-    devRecommendation = `[DEV] T-pose detected (avgAbsZ=${avgAbsZ.toFixed(3)}). ` +
-      `Kalidokit defaults should work. Phase 2 optional.`;
   } else {
     devRecommendation = `[DEV] Uncertain pose (avgAbsZ=${avgAbsZ.toFixed(3)}). ` +
       `Try startPoseAlignment() or manual aPoseOffset adjustment.`;

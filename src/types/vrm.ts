@@ -93,7 +93,8 @@ export const WORLDVIEW_MODELS: Record<WorldviewType, VRMModelInfo> = {
     id: 'fantasy_female',
     name: '힐러 요정',
     worldview: 'fantasy',
-    modelUrl: '/models/fantasy_female.vrm',
+    // T-pose 수정 버전으로 테스트
+    modelUrl: '/models/fantasy_female(fix).vrm',
     description: '판타지 세계의 치유사'
   },
   sports: {

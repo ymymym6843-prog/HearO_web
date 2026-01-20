@@ -135,6 +135,7 @@ export function VRMCharacter({ modelUrl, onLoaded, onError }: VRMCharacterProps)
           mirror: mirrorMode,
           worldLandmarks3D: worldLandmarks ?? undefined,
           imageSize: { width: 640, height: 480 },
+          useWorldLandmarks3D: true,  // 3D 좌표 사용하여 정확한 팔 회전 계산
         }
       );
     }
