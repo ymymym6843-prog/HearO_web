@@ -1088,6 +1088,16 @@ export function applyPoseToVRM(
 
   if (!poseRig) return;
 
+  // Kalidokit 전체 출력 디버그 (처음 몇 프레임만)
+  if (config.debug && frameCount <= 5) {
+    console.log('[Kalidokit] Full poseRig:', {
+      LeftUpperArm: poseRig.LeftUpperArm,
+      RightUpperArm: poseRig.RightUpperArm,
+      LeftLowerArm: poseRig.LeftLowerArm,
+      RightLowerArm: poseRig.RightLowerArm,
+    });
+  }
+
   // 척추 적용 (Y/Z 회전 제한)
   if (poseRig.Spine) {
     applyRotation(vrm, BoneNames.Spine, {
@@ -1097,15 +1107,36 @@ export function applyPoseToVRM(
     });
   }
 
-  // 팔 적용
+  // ========================================
+  // T-pose VRM 보정
+  // Kalidokit은 T-pose 기준으로 계산하지만, z=±1.25는 "팔을 내린 기본자세"
+  // VRM T-pose에서 팔이 수평이므로, z 값을 보정해야 함
+  // z = 0 → 팔 수평 (T-pose)
+  // z = ±1.25 → 팔 내림 (A-pose 근처)
+  // ========================================
+  const ARM_REST_OFFSET = 1.25; // Kalidokit의 "팔 내림" 기본값
+
+  // 팔 적용 (T-pose 보정 적용)
   if (poseRig.LeftUpperArm) {
-    applyRotation(vrm, BoneNames.LeftUpperArm, poseRig.LeftUpperArm, 'LeftUpperArm');
+    // 왼팔: z 값에서 기본 오프셋을 빼서 T-pose 기준으로 변환
+    const correctedLeftArm = {
+      x: poseRig.LeftUpperArm.x,
+      y: poseRig.LeftUpperArm.y,
+      z: poseRig.LeftUpperArm.z - ARM_REST_OFFSET, // 보정: 1.25 → 0
+    };
+    applyRotation(vrm, BoneNames.LeftUpperArm, correctedLeftArm, 'LeftUpperArm');
   }
   if (poseRig.LeftLowerArm) {
     applyRotation(vrm, BoneNames.LeftLowerArm, poseRig.LeftLowerArm, 'LeftLowerArm');
   }
   if (poseRig.RightUpperArm) {
-    applyRotation(vrm, BoneNames.RightUpperArm, poseRig.RightUpperArm, 'RightUpperArm');
+    // 오른팔: z 값에 기본 오프셋을 더해서 T-pose 기준으로 변환
+    const correctedRightArm = {
+      x: poseRig.RightUpperArm.x,
+      y: poseRig.RightUpperArm.y,
+      z: poseRig.RightUpperArm.z + ARM_REST_OFFSET, // 보정: -1.25 → 0
+    };
+    applyRotation(vrm, BoneNames.RightUpperArm, correctedRightArm, 'RightUpperArm');
   }
   if (poseRig.RightLowerArm) {
     applyRotation(vrm, BoneNames.RightLowerArm, poseRig.RightLowerArm, 'RightLowerArm');
