@@ -7,7 +7,7 @@
 | Core Infrastructure | 7 | 7 | 100% |
 | VRM & Animation | 6 | 9 | 67% |
 | Theme System | 9 | 11 | 82% |
-| Exercise System | 14 | 22 | 64% |
+| Exercise System | 18 | 18 | 100% |
 | TTS System | 6 | 9 | 67% |
 | Story & NPC | 7 | 9 | 78% |
 | Worldview Activation | 3 | 6 | 50% |
@@ -97,22 +97,18 @@
 | Standing Anti-Extension Hold | [x] | N/A | Core tension |
 | Standing Arm Raise Core | [x] | 0-180° | Shoulder, Core |
 
-### Hand Rehabilitation (4/12 Complete)
+### Hand Rehabilitation (8/8 Complete)
 
-| Exercise | Status | Priority | Notes |
-|----------|--------|----------|-------|
-| Finger Flexion | [x] | - | Basic grip |
-| Tendon Glide | [x] | - | 5 positions |
-| Thumb Opposition | [x] | - | Fine motor |
-| Finger Spread | [x] | - | Abduction |
-| Grip Squeeze | [ ] | High | Strength training |
-| Wrist Flexion | [ ] | High | ROM exercise |
-| Wrist Extension | [ ] | High | ROM exercise |
-| Finger Abduction | [ ] | Medium | Fine motor |
-| Thumb Flexion | [ ] | Medium | Thumb ROM |
-| Power Grip | [ ] | Medium | Functional |
-| Pinch Grip | [ ] | Low | Fine motor |
-| Hand Open/Close | [ ] | Low | Basic ROM |
+| Exercise | Status | Notes |
+|----------|--------|-------|
+| Finger Flexion | [x] | 손가락 굽히기/펴기 |
+| Finger Spread | [x] | 손가락 벌리기 |
+| Wrist Flexion | [x] | 손목 굽히기/펴기 |
+| Tendon Glide | [x] | 힘줄 글라이딩 (5단계) |
+| Thumb Opposition | [x] | 엄지-손가락 터치 |
+| Grip Squeeze | [x] | 주먹 쥐기 |
+| Pinch Hold | [x] | 집게 집기 유지 |
+| Finger Tap Sequence | [x] | 손가락 순차 터치 |
 
 ---
 
@@ -215,10 +211,9 @@
 
 ### Critical
 1. [ ] Mobile 30fps performance optimization
-2. [ ] Complete hand rehabilitation exercises (8 remaining)
 
 ### High
-1. [ ] Complete story content for inactive worldviews
+1. [ ] Complete story content for inactive worldviews (SF, Zombie, Spy)
 2. [ ] Screen reader optimization
 3. [ ] Memory leak detection
 
