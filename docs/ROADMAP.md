@@ -14,12 +14,17 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Current Status: 85% Complete
+## Current Status: 87% Complete
 
 ### Build Status
 - **TypeScript Errors**: 0
 - **Build**: Successful (20 static pages)
 - **Last Updated**: 2026-01-24
+
+### Recent Major Updates
+- HearO-v2 의료 기능 포팅 (Phase 1)
+- 게이미피케이션 HUD 시스템
+- Recharts 기반 데이터 시각화
 
 ---
 
@@ -189,6 +194,34 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 ### Remaining Tasks
 - [ ] Screen reader optimization
 - [ ] ARIA labels for all interactive elements
+
+---
+
+## Phase 10: Medical System - HearO-v2 포팅 (80% Complete)
+
+### Completed Tasks (Phase 1)
+- [x] ROM 측정 서비스 (AAOS 표준 기반)
+- [x] 2단계 재활 시스템 (RECOVERY / STRENGTH)
+- [x] 안전 기능 서비스 (Red Flags 감지)
+- [x] ROMGauge 컴포넌트 (Recharts 기반)
+- [x] ExerciseHUD 컴포넌트 (게이미피케이션 통합)
+- [x] RedFlagAlert 컴포넌트
+- [x] PainScaleInput 컴포넌트 (VAS 0-10)
+- [x] DB 마이그레이션 파일 준비
+- [x] TypeScript 타입 정의 (medical.ts)
+
+### Remaining Tasks (Phase 2+)
+- [ ] 캘리브레이션 UI 리뉴얼
+- [ ] 운동 결과 시각화 대시보드
+- [ ] 일일 통계 차트
+- [ ] 의료진 대시보드 (Phase 3)
+- [ ] 리포트 내보내기 기능 (Phase 3)
+
+### Key Features
+- **2단계 재활 시스템**: 4단계 → 2단계 단순화 (RECOVERY: 0-70% ROM, STRENGTH: 70%+ ROM)
+- **XP/레벨 시스템**: 운동당 XP 획득, 콤보 보너스, 정확도 보너스
+- **Red Flags**: 심한 통증, 과도한 ROM, 좌우 비대칭, ROM 감소, 보상 동작 감지
+- **시각화**: Recharts 라이브러리 기반 반원형 게이지
 
 ---
 
