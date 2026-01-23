@@ -3,36 +3,129 @@
 /**
  * VRM 캐릭터 컴포넌트
  * Three.js + @pixiv/three-vrm 기반 3D 캐릭터 렌더링
+ *
+ * Utonics 스타일 벤치마킹: useKalidokit 훅 사용
+ * VRMA 애니메이션 + 표정 시스템 통합
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { VRM, VRMLoaderPlugin } from '@pixiv/three-vrm';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { applyPoseToVRM, resetVRMPose } from '@/lib/kalidokit/vrmAnimator';
+import { useKalidokit, resetVRMPose } from '@/hooks/useKalidokit';
+import { useVRMAAnimation } from '@/hooks/useVRMAAnimation';
 import { useCharacterStore } from '@/stores/useCharacterStore';
+import { vrmFeedbackService, setVRMExpression, type ExpressionState } from '@/services/vrmFeedbackService';
 import { Icon } from '@/components/ui/Icon';
 
 interface VRMCharacterProps {
   modelUrl: string;
   onLoaded?: (vrm: VRM) => void;
   onError?: (error: Error) => void;
+  // VRMA 애니메이션 관련
+  animationUrl?: string | null; // 재생할 VRMA URL
+  onAnimationEnd?: () => void; // 애니메이션 종료 콜백
+  // 표정 관련
+  expression?: ExpressionState | null; // 설정할 표정
 }
 
-export function VRMCharacter({ modelUrl, onLoaded, onError }: VRMCharacterProps) {
-  const vrmRef = useRef<VRM | null>(null);
+export function VRMCharacter({
+  modelUrl,
+  onLoaded,
+  onError,
+  animationUrl,
+  onAnimationEnd,
+  expression,
+}: VRMCharacterProps) {
   const { scene } = useThree();
-  const { poseLandmarks, worldLandmarks, handLandmarks, setVRM, setLoaded, mirrorMode, isCalibrated } = useCharacterStore();
+  const {
+    poseLandmarks,
+    worldLandmarks,
+    handLandmarks,
+    setVRM,
+    setLoaded,
+    mirrorMode,
+  } = useCharacterStore();
+
+  // VRMA 애니메이션 훅
+  const {
+    isPlaying: isAnimationPlaying,
+    loadAnimation,
+    play: playAnimation,
+    stop: stopAnimation,
+    setLoop,
+    update: updateAnimation,
+    initialize: initializeAnimation,
+    dispose: disposeAnimation,
+  } = useVRMAAnimation();
+
+  // 애니메이션 재생 중 여부 (포즈 동기화 비활성화용)
+  const [isPlayingVRMA, setIsPlayingVRMA] = useState(false);
+
+  // VRM을 state로 관리하여 변경 시 리렌더링 트리거
+  const [loadedVRM, setLoadedVRM] = useState<VRM | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Scene에 추가된 VRM 추적 (cleanup용)
+  const addedToSceneRef = useRef<VRM | null>(null);
+
+  // Utonics 스타일 Kalidokit 훅 사용
+  // VRM이 로드된 후에만 활성화 (VRMA 애니메이션 재생 중에는 비활성화)
+  const { isActive, frameCount, syncQuality, handSyncActive } = useKalidokit({
+    vrm: loadedVRM,
+    poseLandmarks,
+    worldLandmarks,
+    handLandmarks: {
+      left: handLandmarks.left,
+      right: handLandmarks.right,
+    },
+    enabled: loadedVRM !== null && !isPlayingVRMA, // 애니메이션 재생 중에는 포즈 동기화 비활성화
+    mirror: mirrorMode,
+  });
+
+  // VRMA 애니메이션 로드 및 재생
+  const handlePlayAnimation = useCallback(async (url: string) => {
+    if (!loadedVRM) return;
+
+    try {
+      setIsPlayingVRMA(true);
+      setLoop(false); // 완료 애니메이션은 1회만 재생
+      await loadAnimation(url);
+      playAnimation();
+      console.log('[VRMCharacter] Playing animation:', url);
+    } catch (error) {
+      console.error('[VRMCharacter] Failed to play animation:', error);
+      setIsPlayingVRMA(false);
+    }
+  }, [loadedVRM, loadAnimation, playAnimation, setLoop]);
+
+  // animationUrl prop 변경 감지
+  useEffect(() => {
+    if (animationUrl && loadedVRM) {
+      handlePlayAnimation(animationUrl);
+    } else if (!animationUrl && isPlayingVRMA) {
+      // 애니메이션 URL이 null로 변경되면 중지
+      stopAnimation();
+      setIsPlayingVRMA(false);
+    }
+  }, [animationUrl, loadedVRM, handlePlayAnimation, stopAnimation, isPlayingVRMA]);
+
+  // 표정 변경 처리
+  useEffect(() => {
+    if (expression && loadedVRM) {
+      setVRMExpression(loadedVRM, expression);
+    }
+  }, [expression, loadedVRM]);
 
   // VRM 모델 로드
   useEffect(() => {
     setLoadError(null);
     setIsLoading(true);
     setLoadProgress(0);
+    setLoadedVRM(null);
 
     const loader = new GLTFLoader();
     loader.register((parser) => new VRMLoaderPlugin(parser));
@@ -51,38 +144,46 @@ export function VRMCharacter({ modelUrl, onLoaded, onError }: VRMCharacterProps)
         }
 
         // 이전 모델 제거
-        if (vrmRef.current) {
-          scene.remove(vrmRef.current.scene);
+        if (addedToSceneRef.current) {
+          scene.remove(addedToSceneRef.current.scene);
+          addedToSceneRef.current = null;
         }
 
-        vrmRef.current = vrm;
+        // 새 모델 추가
         scene.add(vrm.scene);
+        addedToSceneRef.current = vrm;
 
         // 캐릭터 위치 설정
         vrm.scene.position.set(0, 0, 0);
-        vrm.scene.rotation.set(0, 0, 0); // 회전 초기화
+        vrm.scene.rotation.set(0, 0, 0);
 
-        // T-pose로 초기화 (만세 포즈 방지)
+        // T-pose로 초기화
         resetVRMPose(vrm);
 
-        // 스토어 업데이트
+        // VRMA 애니메이션 시스템 초기화
+        initializeAnimation(vrm);
+
+        // vrmFeedbackService에 VRM 설정
+        vrmFeedbackService.setVRM(vrm);
+
+        // 상태 업데이트 (리렌더링 트리거)
+        setLoadedVRM(vrm);
         setVRM(vrm);
         setLoaded(true);
         setIsLoading(false);
         setLoadProgress(100);
 
+        console.log('[VRMCharacter] VRM loaded successfully (with animation support)');
         onLoaded?.(vrm);
       },
       (progress) => {
-        // 로딩 진행률
         const percent = progress.total > 0
           ? Math.round((progress.loaded / progress.total) * 100)
           : 0;
         setLoadProgress(percent);
-        console.log(`VRM Loading: ${percent}%`);
       },
       (error) => {
-        console.error('VRM 로드 실패:', error);
+        console.error('[VRMCharacter] VRM load failed:', error);
         const errorMessage = error instanceof Error
           ? error.message
           : '모델을 불러올 수 없습니다';
@@ -93,55 +194,58 @@ export function VRMCharacter({ modelUrl, onLoaded, onError }: VRMCharacterProps)
     );
 
     return () => {
-      if (vrmRef.current) {
-        scene.remove(vrmRef.current.scene);
-        setVRM(null);
-        setLoaded(false);
-        vrmRef.current = null;
+      if (addedToSceneRef.current) {
+        scene.remove(addedToSceneRef.current.scene);
+        addedToSceneRef.current = null;
       }
+      // 애니메이션 시스템 정리
+      disposeAnimation();
+      vrmFeedbackService.dispose();
+      setVRM(null);
+      setLoaded(false);
+      setLoadedVRM(null);
     };
-  }, [modelUrl, scene, setVRM, setLoaded, onLoaded, onError]);
+  }, [modelUrl, scene, setVRM, setLoaded, onLoaded, onError, disposeAnimation]);
 
   // 디버그 카운터
-  const frameCountRef = useRef(0);
+  const debugFrameRef = useRef(0);
+  const prevAnimationPlayingRef = useRef(false);
 
-  // 매 프레임마다 포즈 업데이트
+  // 매 프레임마다 VRM 업데이트 (표정 + 애니메이션)
   useFrame((_, delta) => {
-    frameCountRef.current++;
+    debugFrameRef.current++;
 
-    // 처음 몇 프레임만 디버그 (더 자세하게)
-    if (frameCountRef.current <= 10 || frameCountRef.current % 100 === 0) {
-      console.log('[VRMCharacter] Frame', frameCountRef.current,
-        'vrmRef:', !!vrmRef.current,
-        'poseLandmarks:', poseLandmarks?.length ?? 'null',
-        'worldLandmarks:', worldLandmarks?.length ?? 'null',
-        'mirrorMode:', mirrorMode
-      );
+    // 처음 몇 프레임만 디버그
+    if (debugFrameRef.current <= 5 || debugFrameRef.current % 300 === 0) {
+      console.log('[VRMCharacter] Frame', debugFrameRef.current, {
+        vrmLoaded: !!loadedVRM,
+        kalidokitActive: isActive,
+        syncFrames: frameCount,
+        syncQuality: syncQuality.toFixed(2),
+        handSync: handSyncActive,
+        poseLandmarks: poseLandmarks?.length ?? 'null',
+        worldLandmarks: worldLandmarks?.length ?? 'null',
+        animationPlaying: isAnimationPlaying,
+      });
     }
 
-    if (!vrmRef.current) return;
+    // VRMA 애니메이션 업데이트
+    if (isPlayingVRMA) {
+      updateAnimation(delta);
 
-    // 포즈 적용 (캘리브레이션 건너뛰고 바로 테스트)
-    // TODO: 테스트 완료 후 isCalibrated 체크 복원
-    if (poseLandmarks) {
-      applyPoseToVRM(
-        vrmRef.current,
-        poseLandmarks,
-        {
-          left: handLandmarks.left ?? undefined,
-          right: handLandmarks.right ?? undefined,
-        },
-        {
-          mirror: mirrorMode,
-          worldLandmarks3D: worldLandmarks ?? undefined,
-          imageSize: { width: 640, height: 480 },
-          useWorldLandmarks3D: true,  // 3D 좌표 사용하여 정확한 팔 회전 계산
-        }
-      );
+      // 애니메이션 종료 감지 (isAnimationPlaying이 true→false로 변할 때)
+      if (prevAnimationPlayingRef.current && !isAnimationPlaying) {
+        console.log('[VRMCharacter] Animation ended');
+        setIsPlayingVRMA(false);
+        onAnimationEnd?.();
+      }
     }
+    prevAnimationPlayingRef.current = isAnimationPlaying;
 
     // VRM 업데이트 (표정 등)
-    vrmRef.current.update(delta);
+    if (loadedVRM) {
+      loadedVRM.update(delta);
+    }
   });
 
   // 에러 발생 시 폴백 UI

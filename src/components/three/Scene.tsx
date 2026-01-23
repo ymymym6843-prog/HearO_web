@@ -5,21 +5,45 @@
  * React Three Fiber 기반 3D 씬 설정
  * MediaErrorBoundary로 WebGL 오류 처리
  * WebGL 컨텍스트 손실 대응
+ *
+ * Utonics 벤치마킹: 조명/카메라/헬퍼 설정 지원
  */
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
-import { Suspense, useState, useCallback, useEffect } from 'react';
+import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
+import * as THREE from 'three';
 import { VRMCharacter } from './VRMCharacter';
 import { MediaErrorBoundary } from '@/components/common/ErrorBoundary';
+import type { ExpressionState } from '@/services/vrmFeedbackService';
+import type { LightingSettings, CameraAngle } from '@/types/scene';
+import { CAMERA_PRESETS } from '@/types/scene';
 
 interface SceneProps {
   modelUrl: string;
   showGrid?: boolean;
+  showAxes?: boolean;
   enableControls?: boolean;
   backgroundColor?: string;
   onCharacterLoaded?: () => void;
+  // VRMA 애니메이션 관련
+  animationUrl?: string | null;
+  onAnimationEnd?: () => void;
+  // 표정 관련
+  expression?: ExpressionState | null;
+  // 조명 설정 (Utonics 벤치마킹)
+  lighting?: LightingSettings;
+  // 카메라 앵글 (Utonics 벤치마킹)
+  cameraAngle?: CameraAngle;
+  onCameraAngleChange?: (angle: CameraAngle) => void;
 }
+
+// 기본 조명 설정
+const DEFAULT_LIGHTING: LightingSettings = {
+  ambientIntensity: 0.7,
+  directionalIntensity: 0.8,
+  hemisphereIntensity: 0.6,
+};
 
 // 로딩 플레이스홀더
 function LoadingPlaceholder() {
@@ -31,27 +55,85 @@ function LoadingPlaceholder() {
   );
 }
 
+// 축 헬퍼 컴포넌트
+function AxesHelper({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+  return <primitive object={new THREE.AxesHelper(2)} />;
+}
+
+// 카메라 컨트롤러 (앵글 변경 지원)
+function CameraController({
+  cameraAngle,
+  enableControls,
+}: {
+  cameraAngle?: CameraAngle;
+  enableControls: boolean;
+}) {
+  const { camera } = useThree();
+  const controlsRef = useRef<any>(null);
+
+  // 카메라 앵글 변경 시 위치 업데이트
+  useEffect(() => {
+    if (cameraAngle && cameraAngle !== 'custom') {
+      const preset = CAMERA_PRESETS[cameraAngle];
+      camera.position.set(...preset.position);
+      if (controlsRef.current) {
+        controlsRef.current.target.set(...preset.target);
+        controlsRef.current.update();
+      }
+    }
+  }, [cameraAngle, camera]);
+
+  if (!enableControls) return null;
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enableZoom={true}
+      enablePan={false}
+      enableRotate={true}
+      autoRotate={false}
+      minPolarAngle={Math.PI / 6}
+      maxPolarAngle={Math.PI / 1.3}
+      minDistance={1.5}
+      maxDistance={6}
+      target={[0, 1, 0]}
+      enableDamping={true}
+      dampingFactor={0.05}
+    />
+  );
+}
+
 // 내부 3D 씬 (Canvas 내부) - 경량화 버전
 function SceneContent({
   modelUrl,
   showGrid,
+  showAxes,
   enableControls,
   onCharacterLoaded,
-}: Omit<SceneProps, 'backgroundColor'>) {
+  animationUrl,
+  onAnimationEnd,
+  expression,
+  lighting = DEFAULT_LIGHTING,
+  cameraAngle,
+}: Omit<SceneProps, 'backgroundColor' | 'onCameraAngleChange'>) {
   return (
     <>
-      {/* 간소화된 조명 (GPU 부담 감소) */}
-      <ambientLight intensity={0.7} />
+      {/* 조명 시스템 (Utonics 벤치마킹: 동적 조명 강도) */}
+      <ambientLight intensity={lighting.ambientIntensity} />
       <directionalLight
         position={[2, 3, 2]}
-        intensity={0.8}
+        intensity={lighting.directionalIntensity}
         // castShadow 제거 - 성능 향상
       />
-      <directionalLight position={[-1, 2, -1]} intensity={0.4} />
+      <directionalLight
+        position={[-1, 2, -1]}
+        intensity={lighting.directionalIntensity * 0.5}
+      />
 
-      {/* 헤미스피어 라이트로 자연스러운 환경광 (Environment 대체) */}
+      {/* 헤미스피어 라이트로 자연스러운 환경광 */}
       <hemisphereLight
-        args={['#ffffff', '#444444', 0.6]}
+        args={['#ffffff', '#444444', lighting.hemisphereIntensity]}
       />
 
       {/* VRM 캐릭터 */}
@@ -59,6 +141,9 @@ function SceneContent({
         <VRMCharacter
           modelUrl={modelUrl}
           onLoaded={onCharacterLoaded}
+          animationUrl={animationUrl}
+          onAnimationEnd={onAnimationEnd}
+          expression={expression}
         />
       </Suspense>
 
@@ -79,20 +164,14 @@ function SceneContent({
         />
       )}
 
+      {/* 축 헬퍼 (디버그용) */}
+      <AxesHelper visible={showAxes ?? false} />
+
       {/* 카메라 컨트롤 */}
-      {enableControls && (
-        <OrbitControls
-          enableZoom={true}
-          enablePan={false}
-          enableRotate={true}
-          autoRotate={false}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 1.5}
-          minDistance={1.5}
-          maxDistance={5}
-          target={[0, 1, 0]}
-        />
-      )}
+      <CameraController
+        cameraAngle={cameraAngle}
+        enableControls={enableControls ?? true}
+      />
     </>
   );
 }
@@ -100,9 +179,15 @@ function SceneContent({
 export function Scene({
   modelUrl,
   showGrid = false,
+  showAxes = false,
   enableControls = true,
   backgroundColor = '#1a1a2e',
   onCharacterLoaded,
+  animationUrl,
+  onAnimationEnd,
+  expression,
+  lighting,
+  cameraAngle,
 }: SceneProps) {
   const [contextLost, setContextLost] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
@@ -167,8 +252,14 @@ export function Scene({
         <SceneContent
           modelUrl={modelUrl}
           showGrid={showGrid}
+          showAxes={showAxes}
           enableControls={enableControls}
           onCharacterLoaded={onCharacterLoaded}
+          animationUrl={animationUrl}
+          onAnimationEnd={onAnimationEnd}
+          expression={expression}
+          lighting={lighting}
+          cameraAngle={cameraAngle}
         />
       </Canvas>
     </MediaErrorBoundary>

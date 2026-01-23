@@ -9,6 +9,22 @@ import type { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '@/types/database';
 import { authService } from '@/services/authService';
 
+// 회원가입 옵션 타입
+export interface SignUpFormData {
+  email: string;
+  password: string;
+  username?: string;
+  fullName?: string;
+  birthdate?: string;
+  gender?: 'male' | 'female' | 'other';
+  consents?: {
+    terms: boolean;
+    privacy: boolean;
+    health: boolean;
+    marketing: boolean;
+  };
+}
+
 interface AuthState {
   // 상태
   user: User | null;
@@ -21,7 +37,7 @@ interface AuthState {
   // 액션
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (email: string, password: string, username?: string) => Promise<boolean>;
+  signUp: (data: SignUpFormData) => Promise<boolean>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<boolean>;
@@ -130,14 +146,18 @@ export const useAuthStore = create<AuthState>()(
       /**
        * 회원가입
        */
-      signUp: async (email: string, password: string, username?: string) => {
+      signUp: async (data: SignUpFormData) => {
         set({ isLoading: true, error: null });
 
         try {
           const { user, session, error } = await authService.signUp({
-            email,
-            password,
-            username,
+            email: data.email,
+            password: data.password,
+            username: data.username,
+            fullName: data.fullName,
+            birthdate: data.birthdate,
+            gender: data.gender,
+            consents: data.consents,
           });
 
           if (error) {

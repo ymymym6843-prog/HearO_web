@@ -12,6 +12,12 @@ import {
   drawSkeleton,
   closePoseDetection,
 } from '@/lib/mediapipe/poseDetection';
+import {
+  initializeHandDetection,
+  detectHands,
+  drawHandSkeleton,
+  closeHandDetection,
+} from '@/lib/mediapipe/handDetection';
 import type { Landmark } from '@/types/pose';
 import { useCharacterStore } from '@/stores/useCharacterStore';
 import { getSkeletonStyle } from '@/constants/themes';
@@ -29,8 +35,11 @@ interface WebCameraProps {
   width?: number;
   height?: number;
   showSkeleton?: boolean;
+  showHandSkeleton?: boolean;  // 손 랜드마크 표시 여부
+  enableHandTracking?: boolean; // 손 추적 활성화 여부
   worldview?: WorldviewType;
   onPoseDetected?: (landmarks: Landmark[]) => void;
+  onHandsDetected?: (hands: { left: Landmark[] | null; right: Landmark[] | null }) => void;
   className?: string;
 }
 
@@ -38,8 +47,11 @@ export function WebCamera({
   width = 640,
   height = 480,
   showSkeleton = true,
+  showHandSkeleton = true,
+  enableHandTracking = true,
   worldview,
   onPoseDetected,
+  onHandsDetected,
   className = '',
 }: WebCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -48,6 +60,7 @@ export function WebCamera({
   const detectLoopRef = useRef<(() => void) | undefined>(undefined);
 
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isHandInitialized, setIsHandInitialized] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'permission' | 'mediapipe' | 'device' | 'unknown' | null>(null);
@@ -55,7 +68,7 @@ export function WebCamera({
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpMessage, setHelpMessage] = useState('');
 
-  const { setPoseLandmarks } = useCharacterStore();
+  const { setPoseLandmarks, setHandLandmarks } = useCharacterStore();
 
   // 스타일 객체 메모이제이션 (렌더링 최적화)
   const containerStyle = useMemo(() => ({ width, height }), [width, height]);
@@ -111,9 +124,33 @@ export function WebCamera({
         }
       }
 
+      // 손 감지 (활성화된 경우)
+      if (enableHandTracking && isHandInitialized) {
+        const handResult = detectHands(video, timestamp);
+        if (handResult) {
+          // 스토어 업데이트
+          setHandLandmarks('left', handResult.left);
+          setHandLandmarks('right', handResult.right);
+
+          // 콜백 호출
+          onHandsDetected?.(handResult);
+
+          // 손 스켈레톤 그리기
+          if (showHandSkeleton && canvasRef.current) {
+            const canvas = canvasRef.current;
+            if (handResult.left) {
+              drawHandSkeleton(canvas, handResult.left, { color: '#FF6B6B' });
+            }
+            if (handResult.right) {
+              drawHandSkeleton(canvas, handResult.right, { color: '#4ECDC4' });
+            }
+          }
+        }
+      }
+
       animationRef.current = requestAnimationFrame(() => detectLoopRef.current?.());
     };
-  }, [isInitialized, showSkeleton, worldview, setPoseLandmarks, onPoseDetected]);
+  }, [isInitialized, isHandInitialized, showSkeleton, showHandSkeleton, enableHandTracking, worldview, setPoseLandmarks, setHandLandmarks, onPoseDetected, onHandsDetected]);
 
   // 초기화
   useEffect(() => {
@@ -187,12 +224,12 @@ export function WebCamera({
         return;
       }
 
-      // 2. MediaPipe 초기화
+      // 2. MediaPipe Pose 초기화
       try {
         await initializePoseDetection();
         if (mounted) setIsInitialized(true);
       } catch (err) {
-        logger.error('MediaPipe 초기화 실패', err);
+        logger.error('MediaPipe Pose 초기화 실패', err);
         if (mounted) {
           setErrorType('mediapipe');
           setError('포즈 감지 모듈 초기화에 실패했습니다. 페이지를 새로고침 해주세요.');
@@ -201,6 +238,21 @@ export function WebCamera({
           if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
           }
+        }
+        return;
+      }
+
+      // 3. MediaPipe Hand 초기화 (옵션)
+      if (enableHandTracking) {
+        try {
+          await initializeHandDetection();
+          if (mounted) {
+            setIsHandInitialized(true);
+            logger.info('MediaPipe Hand Landmarker 초기화 완료');
+          }
+        } catch (err) {
+          // 손 추적 실패는 치명적이지 않음 - 경고만 표시
+          console.warn('[WebCamera] MediaPipe Hand 초기화 실패 (포즈 감지는 정상 작동):', err);
         }
       }
     };
@@ -214,13 +266,14 @@ export function WebCamera({
         cancelAnimationFrame(animationRef.current);
       }
       closePoseDetection();
+      closeHandDetection();
 
       // 카메라 스트림 정리
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [width, height, retryCount]);
+  }, [width, height, retryCount, enableHandTracking]);
 
   // 감지 루프 시작
   useEffect(() => {

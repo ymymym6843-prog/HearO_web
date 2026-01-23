@@ -4,6 +4,7 @@
  */
 
 import type { WorldviewType } from '@/types/vrm';
+import type { WorldviewTheme, FontConfig, ColorPalette, UIStyleConfig } from '@/types/theme';
 
 // 브랜드 컬러
 export const BRAND_COLORS = {
@@ -447,3 +448,365 @@ export function getSuccessRateColor(rate: number): string {
 export function getGradeColor(grade: keyof typeof GRADE_COLORS): string {
   return GRADE_COLORS[grade] || TEXT_COLORS.secondary;
 }
+
+// ============================================
+// 세계관별 상세 테마 설정 (Master Prompt 기준)
+// ============================================
+
+/**
+ * 세계관별 폰트 설정
+ */
+export const WORLDVIEW_FONTS: Record<WorldviewType, FontConfig> = {
+  fantasy: {
+    primary: 'Galmuri11',
+    body: 'Galmuri11, "Noto Sans KR", sans-serif',
+    title: 'Galmuri11, "Noto Sans KR", sans-serif',
+    numeric: 'Galmuri11, monospace',
+    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap',
+  },
+  sports: {
+    primary: 'Black Han Sans',
+    body: '"Noto Sans KR", sans-serif',
+    title: '"Black Han Sans", "Noto Sans KR", sans-serif',
+    numeric: '"Black Han Sans", "Bebas Neue", sans-serif',
+    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap',
+  },
+  idol: {
+    primary: 'Galmuri11',
+    body: 'Galmuri11, "Noto Sans KR", sans-serif',
+    title: 'Galmuri11, "Noto Sans KR", sans-serif',
+    numeric: 'Galmuri11, monospace',
+    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap',
+  },
+  sf: {
+    primary: 'Orbitron',
+    body: '"Noto Sans KR", sans-serif',
+    title: 'Orbitron, "Noto Sans KR", sans-serif',
+    numeric: 'Orbitron, monospace',
+    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap',
+  },
+  zombie: {
+    primary: 'Galmuri11',
+    body: 'Galmuri11, "Noto Sans KR", sans-serif',
+    title: 'Galmuri11, "Noto Sans KR", sans-serif',
+    numeric: 'Galmuri11, monospace',
+    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap',
+  },
+  spy: {
+    primary: 'Bebas Neue',
+    body: '"Noto Sans KR", sans-serif',
+    title: '"Bebas Neue", "Noto Sans KR", sans-serif',
+    numeric: '"Bebas Neue", monospace',
+    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;700&display=swap',
+  },
+};
+
+/**
+ * 세계관별 확장 컬러 팔레트 (Master Prompt 기준)
+ */
+export const WORLDVIEW_EXTENDED_COLORS: Record<WorldviewType, ColorPalette> = {
+  fantasy: {
+    primary: '#FFD700',           // Gold
+    secondary: '#8B5CF6',         // Purple
+    accent: '#F59E0B',            // Amber
+    background: '#1F1B2E',
+    backgroundSecondary: '#2D2640',
+    text: '#F5F3FF',
+    textSecondary: '#C4B5FD',
+    border: '#4C3D6E',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    glow: 'rgba(255, 215, 0, 0.6)',
+    particles: ['#FFD700', '#F59E0B', '#8B5CF6', '#F472B6'],
+  },
+  sports: {
+    primary: '#00E5FF',           // Neon Blue
+    secondary: '#FBBF24',         // Yellow
+    accent: '#F97316',            // Orange
+    background: '#1C1917',
+    backgroundSecondary: '#292524',
+    text: '#FFFFFF',
+    textSecondary: '#FEF2F2',
+    border: '#44403C',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    glow: 'rgba(0, 229, 255, 0.7)',
+    particles: ['#00E5FF', '#FBBF24', '#F97316', '#FFFFFF'],
+  },
+  idol: {
+    primary: '#FF69B4',           // Vivid Pink
+    secondary: '#EC4899',
+    accent: '#A855F7',            // Purple
+    background: '#1F1625',
+    backgroundSecondary: '#2D1B3D',
+    text: '#FDF2F8',
+    textSecondary: '#FBCFE8',
+    border: '#4C1D4C',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    glow: 'rgba(255, 105, 180, 0.7)',
+    particles: ['#FF69B4', '#FF1493', '#FF69B4', '#FFFFFF', '#FFB6C1'],
+  },
+  sf: {
+    primary: '#00FFFF',           // Cyber Cyan
+    secondary: '#06B6D4',
+    accent: '#3B82F6',            // Blue
+    background: '#0F1419',
+    backgroundSecondary: '#1A1F2E',
+    text: '#ECFEFF',
+    textSecondary: '#A5F3FC',
+    border: '#164E63',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    glow: 'rgba(0, 255, 255, 0.8)',
+    particles: ['#00FFFF', '#00D4FF', '#3B82F6', '#10B981'],
+  },
+  zombie: {
+    primary: '#8B0000',           // Blood Red
+    secondary: '#84CC16',         // Lime (toxic)
+    accent: '#EF4444',
+    background: '#1A1A1A',
+    backgroundSecondary: '#262626',
+    text: '#F7FEE7',
+    textSecondary: '#D9F99D',
+    border: '#3F3F46',
+    success: '#84CC16',
+    warning: '#F59E0B',
+    error: '#DC2626',
+    glow: 'rgba(139, 0, 0, 0.6)',
+    particles: ['#8B0000', '#DC2626', '#84CC16', '#4B5563'],
+  },
+  spy: {
+    primary: '#9C27B0',           // Stealth Purple
+    secondary: '#374151',         // Gray
+    accent: '#DC2626',            // Red
+    background: '#0A0A0A',
+    backgroundSecondary: '#171717',
+    text: '#F9FAFB',
+    textSecondary: '#D1D5DB',
+    border: '#27272A',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#DC2626',
+    glow: 'rgba(156, 39, 176, 0.5)',
+    particles: ['#9C27B0', '#374151', '#DC2626', '#FFFFFF'],
+  },
+};
+
+/**
+ * 세계관별 UI 스타일 설정
+ */
+export const WORLDVIEW_UI_STYLES: Record<WorldviewType, UIStyleConfig> = {
+  fantasy: {
+    dialogueBox: 'parchment',
+    particleEffect: 'sparkle',
+    animation: 'fade',
+    borderRadius: '8px',
+    boxShadow: '0 4px 20px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(139, 92, 246, 0.1)',
+    backdropFilter: 'blur(8px)',
+    textShadow: '0 2px 4px rgba(0, 0, 0, 0.5)',
+    buttonStyle: 'gradient',
+  },
+  sports: {
+    dialogueBox: 'scoreboard',
+    particleEffect: 'motion-blur',
+    animation: 'bounce',
+    borderRadius: '4px',
+    boxShadow: '0 4px 20px rgba(0, 229, 255, 0.4), 0 0 40px rgba(0, 229, 255, 0.2)',
+    backdropFilter: 'blur(4px)',
+    textShadow: '2px 2px 0 #000, -2px -2px 0 #000',
+    buttonStyle: 'solid',
+  },
+  idol: {
+    dialogueBox: 'neon',
+    particleEffect: 'hearts',
+    animation: 'spotlight',
+    borderRadius: '16px',
+    boxShadow: '0 0 30px rgba(255, 105, 180, 0.5), 0 0 60px rgba(255, 105, 180, 0.3)',
+    backdropFilter: 'blur(12px)',
+    textShadow: '0 0 10px rgba(255, 105, 180, 0.8)',
+    buttonStyle: 'neon',
+  },
+  sf: {
+    dialogueBox: 'hologram',
+    particleEffect: 'digital',
+    animation: 'glitch',
+    borderRadius: '2px',
+    boxShadow: '0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 30px rgba(0, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+    textShadow: '0 0 5px #00FFFF, 0 0 10px #00FFFF',
+    buttonStyle: 'outline',
+  },
+  zombie: {
+    dialogueBox: 'distressed',
+    particleEffect: 'blood',
+    animation: 'flicker',
+    borderRadius: '0px',
+    boxShadow: '0 4px 20px rgba(139, 0, 0, 0.4)',
+    backdropFilter: 'blur(2px)',
+    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+    buttonStyle: 'solid',
+  },
+  spy: {
+    dialogueBox: 'classified',
+    particleEffect: 'smoke',
+    animation: 'scan',
+    borderRadius: '0px',
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.8)',
+    backdropFilter: 'blur(6px)',
+    textShadow: 'none',
+    buttonStyle: 'outline',
+  },
+};
+
+/**
+ * 세계관별 타이핑 속도 (ms per character)
+ * - 서사적 분위기: 느리게 (40-60ms)
+ * - 역동적 분위기: 빠르게 (20-30ms)
+ */
+export const WORLDVIEW_TYPING_SPEEDS: Record<WorldviewType, number> = {
+  fantasy: 40,   // 느리게 (서사적)
+  sports: 20,    // 빠르게 (역동적)
+  idol: 35,      // 보통 (경쾌함)
+  sf: 25,        // 빠르게 (기술적)
+  zombie: 60,    // 매우 느리게 (긴장감)
+  spy: 30,       // 보통 (스릴러)
+};
+
+/**
+ * 세계관별 NPC 등장 딜레이 (ms)
+ */
+export const WORLDVIEW_NPC_ENTRANCE_DELAY: Record<WorldviewType, number> = {
+  fantasy: 500,
+  sports: 300,
+  idol: 400,
+  sf: 200,
+  zombie: 800,
+  spy: 600,
+};
+
+/**
+ * CSS 변수 생성 함수
+ */
+export function generateCSSVariables(worldview: WorldviewType): Record<string, string> {
+  const colors = WORLDVIEW_EXTENDED_COLORS[worldview];
+  const fonts = WORLDVIEW_FONTS[worldview];
+  const ui = WORLDVIEW_UI_STYLES[worldview];
+
+  return {
+    // 컬러
+    '--theme-primary': colors.primary,
+    '--theme-secondary': colors.secondary,
+    '--theme-accent': colors.accent,
+    '--theme-background': colors.background,
+    '--theme-background-secondary': colors.backgroundSecondary,
+    '--theme-text': colors.text,
+    '--theme-text-secondary': colors.textSecondary,
+    '--theme-border': colors.border,
+    '--theme-glow': colors.glow,
+    '--theme-success': colors.success,
+    '--theme-warning': colors.warning,
+    '--theme-error': colors.error,
+
+    // 폰트
+    '--theme-font-primary': fonts.primary,
+    '--theme-font-body': fonts.body,
+    '--theme-font-title': fonts.title,
+    '--theme-font-numeric': fonts.numeric,
+
+    // UI
+    '--theme-border-radius': ui.borderRadius,
+    '--theme-box-shadow': ui.boxShadow,
+    '--theme-backdrop-filter': ui.backdropFilter,
+    '--theme-text-shadow': ui.textShadow,
+  };
+}
+
+/**
+ * 전체 WorldviewTheme 객체 생성
+ */
+export function getWorldviewTheme(worldview: WorldviewType): WorldviewTheme {
+  return {
+    id: worldview,
+    name: WORLDVIEW_INFO[worldview].koreanName,
+    fonts: WORLDVIEW_FONTS[worldview],
+    colors: WORLDVIEW_EXTENDED_COLORS[worldview],
+    ui: WORLDVIEW_UI_STYLES[worldview],
+    cssVariables: generateCSSVariables(worldview),
+  };
+}
+
+/**
+ * 모든 세계관 테마 맵
+ */
+export const WORLDVIEW_THEMES: Record<WorldviewType, WorldviewTheme> = {
+  fantasy: getWorldviewTheme('fantasy'),
+  sports: getWorldviewTheme('sports'),
+  idol: getWorldviewTheme('idol'),
+  sf: getWorldviewTheme('sf'),
+  zombie: getWorldviewTheme('zombie'),
+  spy: getWorldviewTheme('spy'),
+};
+
+/**
+ * Google Fonts + Galmuri 로드 URL
+ */
+export const FONT_LOAD_URLS = {
+  // Google Fonts
+  googleFonts: 'https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap',
+  // Galmuri (직접 호스팅 필요 또는 CDN)
+  galmuri: '/fonts/galmuri.css',
+};
+
+/**
+ * 애니메이션 키프레임 정의 (CSS-in-JS용)
+ */
+export const THEME_ANIMATIONS = {
+  glitch: `
+    @keyframes glitch {
+      0% { transform: translate(0); }
+      20% { transform: translate(-2px, 2px); }
+      40% { transform: translate(-2px, -2px); }
+      60% { transform: translate(2px, 2px); }
+      80% { transform: translate(2px, -2px); }
+      100% { transform: translate(0); }
+    }
+  `,
+  flicker: `
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+      75% { opacity: 0.9; }
+      90% { opacity: 0.7; }
+    }
+  `,
+  scan: `
+    @keyframes scan {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 100%; }
+    }
+  `,
+  spotlight: `
+    @keyframes spotlight {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.2); }
+    }
+  `,
+  neonPulse: `
+    @keyframes neonPulse {
+      0%, 100% { box-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+      50% { box-shadow: 0 0 20px currentColor, 0 0 40px currentColor, 0 0 60px currentColor; }
+    }
+  `,
+  hologram: `
+    @keyframes hologram {
+      0% { opacity: 0.9; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-2px); }
+      100% { opacity: 0.9; transform: translateY(0); }
+    }
+  `,
+};

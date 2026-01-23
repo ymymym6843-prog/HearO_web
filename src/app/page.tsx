@@ -2,14 +2,16 @@
 
 /**
  * HearO Web - 환영 화면 (WelcomeScreen)
- * 앱 첫 화면 - 여정 시작하기 버튼으로 세계관 선택 페이지로 이동
+ * 앱 첫 화면 - 로그인 여부에 따라 로그인 페이지 또는 세계관 선택 페이지로 이동
  */
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { BRAND_COLORS } from '@/constants/themes';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 // 특징 아이템 컴포넌트
 function FeatureItem({ icon, text }: { icon: IconName; text: string }) {
@@ -27,9 +29,15 @@ function FeatureItem({ icon, text }: { icon: IconName; text: string }) {
 
 export default function WelcomePage() {
   const router = useRouter();
+  const { user } = useAuthStore();
 
   const handleStart = () => {
-    router.push('/worldview');
+    // 로그인 여부에 따라 다른 페이지로 이동
+    if (user) {
+      router.push('/worldview');
+    } else {
+      router.push('/login');
+    }
   };
 
   return (
@@ -52,24 +60,16 @@ export default function WelcomePage() {
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-8"
+          className="mb-4"
         >
-          <div
-            className="w-[120px] h-[120px] rounded-full flex items-center justify-center border-[3px]"
-            style={{
-              backgroundColor: 'var(--background-secondary)',
-              borderColor: BRAND_COLORS.primary,
-            }}
-          >
-            <Image
-              src="/images/logo/logo-icon.png"
-              alt="HearO"
-              width={64}
-              height={64}
-              priority
-              className="drop-shadow-lg"
-            />
-          </div>
+          <Image
+            src="/images/logo/logo-icon.png"
+            alt="HearO"
+            width={140}
+            height={140}
+            priority
+            className="drop-shadow-2xl"
+          />
         </motion.div>
 
         {/* 타이틀 */}
@@ -151,6 +151,19 @@ export default function WelcomePage() {
         <p className="text-sm text-hearo-text/50">
           탭하여 영웅의 여정을 시작하세요
         </p>
+
+        {/* 로그인/회원가입 링크 */}
+        {!user && (
+          <div className="mt-4 flex items-center gap-4 text-sm">
+            <Link href="/login" className="text-hearo-text/60 hover:text-hearo-primary transition-colors">
+              로그인
+            </Link>
+            <span className="text-hearo-text/30">|</span>
+            <Link href="/signup" className="text-hearo-text/60 hover:text-hearo-primary transition-colors">
+              회원가입
+            </Link>
+          </div>
+        )}
       </motion.div>
     </div>
   );

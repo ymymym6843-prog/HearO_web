@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HearO Visual Novel UI Test</title>
+    <style>
+        :root {
+            --primary-pink: #ff69b4;
+            --overlay-black: rgba(0, 0, 0, 0.7);
+            --text-white: #ffffff;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Pretendard', sans-serif;
+        }
+
+        /* 360도 스카이박스 배경 시뮬레이션 */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1600&q=80') center/cover;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        /* 2D NPC 캐릭터 레이어 */
+        .npc-character {
+            position: absolute;
+            bottom: 10%;
+            height: 80%;
+            transition: all 0.8s ease-in-out;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        /* NPC 페이드인 + 위로 스르륵 나타나는 효과 */
+        .npc-character.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 비주얼 노벨 대화창 박스 */
+        .dialogue-box {
+            position: relative;
+            width: 90%;
+            max-width: 800px;
+            height: 180px;
+            background: var(--overlay-black);
+            border: 2px solid var(--primary-pink);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            box-sizing: border-box;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        /* 캐릭터 이름표 */
+        .name-tag {
+            position: absolute;
+            top: -25px;
+            left: 20px;
+            background: var(--primary-pink);
+            color: white;
+            padding: 5px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        /* 타이핑 텍스트 스타일 */
+        .text-content {
+            color: var(--text-white);
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-top: 10px;
+            word-break: keep-all;
+        }
+
+        /* 클릭 유도 화살표 애니메이션 */
+        .next-arrow {
+            position: absolute;
+            right: 20px;
+            bottom: 15px;
+            color: var(--primary-pink);
+            font-size: 1.5rem;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <img src="https://cdna.artstation.com/p/assets/images/images/030/333/058/original/clara-m-anime-character-design.jpg" 
+         alt="NPC" class="npc-character" id="npc-img">
+
+    <div class="dialogue-box" onclick="handleDialogueClick()">
+        <div class="name-tag" id="npc-name">매니저 수진</div>
+        <div class="text-content" id="dialogue-text"></div>
+        <div class="next-arrow">▼</div>
+    </div>
+</div>
+
+<script>
+    const fullText = "드디어 첫 무대네요! 당신의 노력이 헛되지 않았다는 걸 보여줄 시간이에요. 준비됐나요? 이제 3D 아바타로 변신해서 스쿼트 미션을 수행해봅시다!";
+    let currentText = "";
+    let index = 0;
+    let isTyping = false;
+    let typingTimer;
+
+    const textElement = document.getElementById("dialogue-text");
+    const npcElement = document.getElementById("npc-img");
+
+    // NPC 등장 연출
+    setTimeout(() => {
+        npcElement.classList.add('active');
+        startTyping();
+    }, 500);
+
+    // 타이핑 효과 로직
+    function startTyping() {
+        isTyping = true;
+        currentText = "";
+        index = 0;
+        
+        typingTimer = setInterval(() => {
+            if (index < fullText.length) {
+                currentText += fullText[index];
+                textElement.innerText = currentText;
+                index++;
+            } else {
+                stopTyping();
+            }
+        }, 50); // 타이핑 속도 (ms)
+    }
+
+    function stopTyping() {
+        clearInterval(typingTimer);
+        isTyping = false;
+    }
+
+    // 클릭 시 스킵 또는 다음 대사
+    function handleDialogueClick() {
+        if (isTyping) {
+            // 타이핑 중 클릭하면 전체 텍스트 즉시 표시 (Skip)
+            stopTyping();
+            textElement.innerText = fullText;
+        } else {
+            // 이미 다 쳐졌다면 다음 Phase(액션 모드)로 전환 시뮬레이션
+            alert("이제 3D 아바타 모드로 전환합니다! (MediaPipe 활성화)");
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -139,23 +139,32 @@ export class HandRehabAnalyzer {
     let result: HandRehabAnalysis;
 
     switch (this.exercise) {
+      // ROM/가동성
       case 'finger_flexion':
         result = this.analyzeFingerFlexion(landmarks, gesture, flexion);
         break;
+      case 'finger_spread':
+        result = this.analyzeFingerSpread(landmarks);
+        break;
+      case 'wrist_flexion':
+        result = this.analyzeWristFlexion(landmarks);
+        break;
+      // 협응/힘줄
       case 'tendon_glide':
         result = this.analyzeTendonGlide(landmarks, gesture);
         break;
       case 'thumb_opposition':
         result = this.analyzeThumbOpposition(landmarks);
         break;
-      case 'finger_spread':
-        result = this.analyzeFingerSpread(landmarks);
-        break;
       case 'grip_squeeze':
         result = this.analyzeFingerFlexion(landmarks, gesture, flexion);
         break;
-      case 'wrist_rotation':
-        result = this.analyzeWristRotation(landmarks);
+      // 정밀/기능
+      case 'pinch_hold':
+        result = this.analyzePinchHold(landmarks);
+        break;
+      case 'finger_tap_sequence':
+        result = this.analyzeFingerTapSequence(landmarks);
         break;
       default:
         result = this.createDefaultResult(gesture, flexion);
@@ -469,11 +478,14 @@ export class HandRehabAnalyzer {
   }
 
   /**
-   * 손목 회전 분석
+   * 손목 굽히기/펴기 분석 (wrist_flexion)
    */
-  private analyzeWristRotation(landmarks: HandLandmarkPoint[]): HandRehabAnalysis {
+  private analyzeWristFlexion(landmarks: HandLandmarkPoint[]): HandRehabAnalysis {
     const palmOrientation = calculatePalmOrientation(landmarks);
-    const currentAngle = palmOrientation.rotationAngle;
+    // 손바닥 법선 벡터의 y 성분으로 손목 굴곡/신전 각도 추정
+    // normal.y > 0: 손바닥이 위를 향함 (신전)
+    // normal.y < 0: 손바닥이 아래를 향함 (굴곡)
+    const currentAngle = Math.asin(Math.min(1, Math.max(-1, palmOrientation.normal.y))) * (180 / Math.PI);
 
     this.wristRotationHistory.push(currentAngle);
     if (this.wristRotationHistory.length > 5) {
@@ -481,51 +493,130 @@ export class HandRehabAnalyzer {
     }
 
     const smoothedAngle = this.wristRotationHistory.reduce((a, b) => a + b, 0) / this.wristRotationHistory.length;
+    const now = Date.now();
 
     let feedback = '';
-    let isRotating = false;
+    let isCorrectPosition = false;
 
-    if (this.wristRotationStartAngle === null) {
-      this.wristRotationStartAngle = smoothedAngle;
-      this.wristRotationLastAngle = smoothedAngle;
-      this.wristRotationTotalDegrees = 0;
-      this.phase = 'ready';
-      feedback = '주먹을 쥐고 손목을 원형으로 돌리세요.';
-    } else if (this.wristRotationLastAngle !== null) {
-      let angleDiff = smoothedAngle - this.wristRotationLastAngle;
+    // 손목 굴곡/신전 상태 판단
+    const isExtended = smoothedAngle > 30;  // 손목 신전 (손등 방향으로)
+    const isFlexed = smoothedAngle < -30;   // 손목 굴곡 (손바닥 방향으로)
 
-      if (angleDiff > 180) angleDiff -= 360;
-      if (angleDiff < -180) angleDiff += 360;
-
-      if (Math.abs(angleDiff) > 2 && Math.abs(angleDiff) < 60) {
-        if (this.wristRotationDirection === 0) {
-          this.wristRotationDirection = angleDiff > 0 ? 1 : -1;
-        }
-
-        if ((angleDiff > 0 && this.wristRotationDirection > 0) ||
-            (angleDiff < 0 && this.wristRotationDirection < 0)) {
-          this.wristRotationTotalDegrees += Math.abs(angleDiff);
-          isRotating = true;
-          this.phase = 'in_progress';
-        }
-      }
-
-      this.wristRotationLastAngle = smoothedAngle;
-
-      if (this.wristRotationTotalDegrees >= this.wristRotationThreshold) {
-        this.repCount++;
-        this.wristRotationTotalDegrees = 0;
-        this.wristRotationDirection = 0;
-        this.wristRotationStartAngle = smoothedAngle;
-        this.phase = 'transition';
-        feedback = `${this.repCount}회 완료! 반대 방향으로 돌리세요.`;
+    if (this.phase === 'ready') {
+      if (isExtended) {
+        feedback = '손목을 위로 굽힌 상태입니다. 3초간 유지하세요.';
+        this.phase = 'hold';
+        this.holdStartTime = now;
+        this.currentStep = 0; // 신전 단계
+        isCorrectPosition = true;
       } else {
-        const direction = this.wristRotationDirection > 0 ? '시계방향' : this.wristRotationDirection < 0 ? '반시계방향' : '';
-        if (isRotating) {
-          feedback = `${direction} 회전 중... ${Math.round(this.wristRotationTotalDegrees)}° / ${this.wristRotationThreshold}°`;
+        feedback = '손바닥을 아래로 향하고 손목을 위로 굽히세요.';
+      }
+    } else if (this.phase === 'hold') {
+      const holdTime = this.holdStartTime ? now - this.holdStartTime : 0;
+
+      if (this.currentStep === 0 && isExtended) {
+        // 신전 유지 중
+        isCorrectPosition = true;
+        if (holdTime >= 3000) {
+          this.currentStep = 1; // 굴곡 단계로 전환
+          this.phase = 'in_progress';
+          this.holdStartTime = null;
+          feedback = '이제 손목을 아래로 굽히세요.';
         } else {
-          feedback = '손목을 원형으로 돌리세요.';
+          const remaining = (3000 - holdTime) / 1000;
+          feedback = `신전 유지 중... ${remaining.toFixed(1)}초 남음`;
         }
+      } else if (this.currentStep === 1 && isFlexed) {
+        // 굴곡 유지 중
+        isCorrectPosition = true;
+        if (holdTime >= 3000) {
+          this.repCount++;
+          this.currentStep = 0;
+          this.phase = 'ready';
+          this.holdStartTime = null;
+          feedback = `${this.repCount}회 완료! 다시 손목을 위로 굽히세요.`;
+        } else {
+          const remaining = (3000 - holdTime) / 1000;
+          feedback = `굴곡 유지 중... ${remaining.toFixed(1)}초 남음`;
+        }
+      } else {
+        this.phase = this.currentStep === 0 ? 'ready' : 'in_progress';
+        this.holdStartTime = null;
+        feedback = this.currentStep === 0 ? '손목을 위로 굽히세요.' : '손목을 아래로 굽히세요.';
+      }
+    } else if (this.phase === 'in_progress') {
+      if (isFlexed) {
+        this.phase = 'hold';
+        this.holdStartTime = now;
+        isCorrectPosition = true;
+        feedback = '손목을 아래로 굽힌 상태입니다. 3초간 유지하세요.';
+      } else {
+        feedback = '손목을 아래로 굽히세요.';
+      }
+    }
+
+    return {
+      exercise: this.exercise,
+      phase: this.phase,
+      currentStep: this.currentStep,
+      totalSteps: 2,
+      repCount: this.repCount,
+      targetReps: HAND_REHAB_DEFINITIONS[this.exercise].repetitions,
+      currentGesture: 'open',
+      isCorrectGesture: isCorrectPosition,
+      progress: (this.repCount / HAND_REHAB_DEFINITIONS[this.exercise].repetitions) * 100,
+      holdTime: this.holdStartTime ? now - this.holdStartTime : 0,
+      targetHoldTime: 3000,
+      feedback,
+      flexionPercent: 0,
+      measurement: {
+        type: 'angles',
+        label: '손목 각도',
+        value: Math.round(smoothedAngle),
+        unit: '°',
+        target: this.currentStep === 0 ? 30 : -30,
+        details: {
+          '현재': Math.round(smoothedAngle),
+          '단계': this.currentStep,  // 0: 신전, 1: 굴곡
+        },
+      },
+    };
+  }
+
+  /**
+   * 집게 집기 유지 분석 (pinch_hold)
+   */
+  private analyzePinchHold(landmarks: HandLandmarkPoint[]): HandRehabAnalysis {
+    const distance = calculateThumbToFingerDistance(landmarks, 'index');
+    const isPinching = distance < 0.05;
+    const now = Date.now();
+
+    let feedback = '';
+
+    if (this.phase === 'ready') {
+      if (isPinching) {
+        feedback = '집게 자세입니다. 5초간 유지하세요.';
+        this.phase = 'hold';
+        this.holdStartTime = now;
+      } else {
+        feedback = '엄지와 검지로 집게 모양을 만드세요.';
+      }
+    } else if (this.phase === 'hold') {
+      const holdTime = this.holdStartTime ? now - this.holdStartTime : 0;
+
+      if (!isPinching) {
+        if (holdTime >= 5000) {
+          this.repCount++;
+          feedback = `${this.repCount}회 완료! 다시 집게 자세를 만드세요.`;
+        } else {
+          feedback = '더 오래 유지하세요.';
+        }
+        this.phase = 'ready';
+        this.holdStartTime = null;
+      } else {
+        const remaining = Math.max(0, 5000 - holdTime);
+        feedback = `유지 중... ${(remaining / 1000).toFixed(1)}초 남음`;
       }
     }
 
@@ -536,24 +627,92 @@ export class HandRehabAnalyzer {
       totalSteps: 1,
       repCount: this.repCount,
       targetReps: HAND_REHAB_DEFINITIONS[this.exercise].repetitions,
-      currentGesture: 'fist',
-      isCorrectGesture: isRotating,
+      currentGesture: isPinching ? 'pinch' : 'open',
+      isCorrectGesture: isPinching,
       progress: (this.repCount / HAND_REHAB_DEFINITIONS[this.exercise].repetitions) * 100,
-      holdTime: this.wristRotationTotalDegrees,
-      targetHoldTime: this.wristRotationThreshold,
+      holdTime: this.holdStartTime ? now - this.holdStartTime : 0,
+      targetHoldTime: 5000,
       feedback,
       flexionPercent: 0,
       measurement: {
-        type: 'angles',
-        label: '회전 각도',
-        value: Math.round(this.wristRotationTotalDegrees),
-        unit: '°',
-        target: this.wristRotationThreshold,
-        details: {
-          '현재': Math.round(smoothedAngle),
-          '누적': Math.round(this.wristRotationTotalDegrees),
-          '목표': this.wristRotationThreshold,
-        },
+        type: 'distance',
+        label: '집게 거리',
+        value: Math.round(distance * 100),
+        unit: '%',
+        target: 5,
+      },
+    };
+  }
+
+  /**
+   * 손가락 순차 터치 분석 (finger_tap_sequence)
+   */
+  private analyzeFingerTapSequence(landmarks: HandLandmarkPoint[]): HandRehabAnalysis {
+    const targetFingers: FingerName[] = ['index', 'middle', 'ring', 'pinky'];
+    const targetFinger = targetFingers[this.currentStep];
+    const distance = calculateThumbToFingerDistance(landmarks, targetFinger);
+    const isClose = distance < 0.05;
+    const now = Date.now();
+
+    let feedback = '';
+    const fingerNames: Record<FingerName, string> = {
+      thumb: '엄지',
+      index: '검지',
+      middle: '중지',
+      ring: '약지',
+      pinky: '새끼',
+    };
+
+    if (isClose) {
+      if (this.phase !== 'hold') {
+        this.phase = 'hold';
+        this.holdStartTime = now;
+      }
+
+      const holdTime = this.holdStartTime ? now - this.holdStartTime : 0;
+
+      if (holdTime >= 500) {
+        this.currentStep++;
+        this.holdStartTime = null;
+
+        if (this.currentStep >= targetFingers.length) {
+          this.repCount++;
+          this.currentStep = 0;
+          this.phase = 'transition';
+          feedback = `${this.repCount}회 완료! 역순으로 반복하세요.`;
+        } else {
+          this.phase = 'in_progress';
+          feedback = `${fingerNames[targetFingers[this.currentStep]]}을 터치하세요.`;
+        }
+      } else {
+        feedback = `${fingerNames[targetFinger]} 터치 중...`;
+      }
+    } else {
+      this.phase = 'in_progress';
+      this.holdStartTime = null;
+      feedback = `엄지로 ${fingerNames[targetFinger]}을 터치하세요.`;
+    }
+
+    return {
+      exercise: this.exercise,
+      phase: this.phase,
+      currentStep: this.currentStep,
+      totalSteps: 4,
+      repCount: this.repCount,
+      targetReps: HAND_REHAB_DEFINITIONS[this.exercise].repetitions,
+      currentGesture: isClose ? 'pinch' : 'open',
+      isCorrectGesture: isClose,
+      progress: ((this.repCount * 4 + this.currentStep) / (HAND_REHAB_DEFINITIONS[this.exercise].repetitions * 4)) * 100,
+      holdTime: this.holdStartTime ? now - this.holdStartTime : 0,
+      targetHoldTime: 500,
+      feedback,
+      flexionPercent: 0,
+      measurement: {
+        type: 'distance',
+        label: '손가락 거리',
+        value: Math.round(distance * 100),
+        unit: '%',
+        target: 5,
       },
     };
   }

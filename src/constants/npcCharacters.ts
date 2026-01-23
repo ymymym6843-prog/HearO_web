@@ -6,7 +6,7 @@
 import type { WorldviewType } from '@/types/vrm';
 
 // NPC 감정 타입
-export type NPCEmotion = 'normal' | 'happy' | 'serious';
+export type NPCEmotion = 'normal' | 'happy' | 'serious' | 'surprised';
 
 // NPC 캐릭터 정보
 export interface NPCCharacter {

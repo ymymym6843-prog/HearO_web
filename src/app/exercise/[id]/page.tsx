@@ -31,51 +31,98 @@ import {
   sessionRecoveryService,
   type SavedSessionState,
 } from '@/services/sessionRecoveryService';
+import {
+  getRandomCompletionAnimation,
+  getExpressionForAccuracy,
+  type ExpressionState,
+} from '@/services/vrmFeedbackService';
 import { getRandomDialogue, getPerformanceDialogue } from '@/constants/npcDialogueTemplates';
 import { getDetectorForExercise, resetDetector, type BaseDetector, type ExercisePhase as DetectorPhase } from '@/lib/exercise/detection';
-import type { ExerciseType, ExercisePhase } from '@/types/exercise';
+import type { ExerciseType, ExercisePhase, PerformanceRating } from '@/types/exercise';
 import type { Landmark } from '@/types/pose';
 import { MediaErrorBoundary } from '@/components/common';
 import { Icon } from '@/components/ui/Icon';
+import { useSceneSettings } from '@/hooks/useSceneSettings';
+import { SceneSettingsPanel } from '@/components/three/SceneSettingsPanel';
 
 // 클라이언트에서만 로드 (SSR 비활성화)
 const Scene = dynamic(() => import('@/components/three/Scene'), { ssr: false });
 const WebCamera = dynamic(() => import('@/components/camera/WebCamera'), { ssr: false });
 
-// MVP 운동 정보 (6개)
+// MVP 운동 정보 (14개 - 전신 Pose 운동)
 const exerciseInfo: Partial<Record<ExerciseType, { koreanName: string; description: string; targetReps: number }>> = {
-  // 하체 운동 (2개)
+  // 하체 운동 (6개)
   squat: {
     koreanName: '스쿼트',
     description: '의자에 앉듯이 앉았다 일어나기',
     targetReps: 10
   },
-  lunge: {
-    koreanName: '런지',
-    description: '한 발을 크게 앞으로 내딛으며 굽히기',
+  wall_squat: {
+    koreanName: '벽 스쿼트',
+    description: '벽에 등을 대고 앉은 자세 유지하기',
+    targetReps: 1  // 홀드 운동
+  },
+  chair_stand: {
+    koreanName: '의자 앉았다 일어나기',
+    description: '의자에서 앉았다 일어서기 반복',
     targetReps: 10
   },
-  // 상체 운동 (2개)
-  bicep_curl: {
-    koreanName: '바이셉컬',
-    description: '팔을 굽혀 덤벨 들어올리기',
-    targetReps: 12
+  straight_leg_raise: {
+    koreanName: '누워서 다리 들기',
+    description: '누운 자세에서 다리를 들어 올리기',
+    targetReps: 10
   },
-  arm_raise: {
-    koreanName: '암레이즈',
-    description: '팔을 앞으로 들어올리기',
-    targetReps: 12
-  },
-  // 전신/코어 운동 (2개)
-  high_knees: {
-    koreanName: '하이니즈',
-    description: '제자리에서 무릎을 높이 들며 뛰기',
+  standing_march_slow: {
+    koreanName: '서서 천천히 행진',
+    description: '서서 제자리에서 천천히 행진하기',
     targetReps: 20
   },
-  plank_hold: {
-    koreanName: '플랭크',
-    description: '플랭크 자세를 유지하기',
-    targetReps: 1  // 플랭크는 홀드 타이머 기반, rep은 1회
+  seated_knee_lift: {
+    koreanName: '앉아서 무릎 들기',
+    description: '앉아서 무릎을 들어 올리기',
+    targetReps: 10
+  },
+  // 상체 운동 (4개)
+  standing_arm_raise_front: {
+    koreanName: '팔 앞으로 들기',
+    description: '팔을 앞으로 들어올리기',
+    targetReps: 10
+  },
+  shoulder_abduction: {
+    koreanName: '어깨 벌리기',
+    description: '팔을 옆으로 벌려 들어올리기',
+    targetReps: 10
+  },
+  elbow_flexion: {
+    koreanName: '팔꿈치 굽히기',
+    description: '팔꿈치를 천천히 굽혔다 펴기',
+    targetReps: 10
+  },
+  wall_push: {
+    koreanName: '벽 밀기',
+    description: '벽에 손을 대고 밀기',
+    targetReps: 10
+  },
+  // 코어 운동 (4개)
+  seated_core_hold: {
+    koreanName: '앉아서 코어 버티기',
+    description: '앉아서 코어에 힘을 주고 유지하기',
+    targetReps: 1  // 홀드 운동
+  },
+  standing_anti_extension_hold: {
+    koreanName: '서서 허리 버티기',
+    description: '서서 허리를 중립으로 유지하기',
+    targetReps: 1  // 홀드 운동
+  },
+  standing_arm_raise_core: {
+    koreanName: '코어 유지하며 팔 들기',
+    description: '코어 안정화하면서 팔 들기',
+    targetReps: 10
+  },
+  bridge: {
+    koreanName: '브릿지',
+    description: '누워서 엉덩이 들어올리기',
+    targetReps: 10
   },
 };
 
@@ -83,30 +130,41 @@ const exerciseInfo: Partial<Record<ExerciseType, { koreanName: string; descripti
 type CameraOrientation = 'portrait' | 'landscape';
 
 const exerciseCameraOrientation: Partial<Record<ExerciseType, CameraOrientation>> = {
-  // 하체/전신 운동 → 세로 비율 (머리~발끝)
+  // 하체 운동 → 세로 비율 (머리~발끝)
   squat: 'portrait',
-  lunge: 'portrait',
-  high_knees: 'portrait',
-  plank_hold: 'landscape',  // 플랭크는 가로 (바닥에 엎드린 자세)
+  wall_squat: 'portrait',
+  chair_stand: 'portrait',
+  straight_leg_raise: 'landscape',  // 누운 자세 (가로)
+  standing_march_slow: 'portrait',
+  seated_knee_lift: 'portrait',
 
-  // 상체 운동 → 가로/세로 (팔 전체가 보여야 함)
-  bicep_curl: 'portrait',   // 팔 전체가 보여야 함
-  arm_raise: 'portrait',    // 팔 전체가 보여야 함
+  // 상체 운동 → 가로 비율 (팔 전체 + 어깨가 보여야 함)
+  standing_arm_raise_front: 'landscape',
+  shoulder_abduction: 'landscape',
+  elbow_flexion: 'landscape',
+  wall_push: 'landscape',
+
+  // 코어 운동
+  seated_core_hold: 'portrait',
+  standing_anti_extension_hold: 'portrait',
+  standing_arm_raise_core: 'landscape',
+  bridge: 'landscape',  // 누운 자세 (가로)
 };
 
 // 카메라 크기 계산 (PIP 모드)
+// 낮은 해상도 = 더 넓은 화각 (웹캠 특성)
 function getCameraDimensions(orientation: CameraOrientation, isPip: boolean) {
   if (!isPip) {
-    // 전체 화면 모드
+    // 전체 화면 모드 - 낮은 해상도로 넓은 화각 확보
     return orientation === 'portrait'
-      ? { width: 480, height: 640 }
-      : { width: 640, height: 480 };
+      ? { width: 480, height: 640 }   // 세로: 전신 촬영용
+      : { width: 640, height: 480 };  // 가로: 상체 운동용 (넓은 화각)
   }
 
-  // PIP 모드
+  // PIP 모드 - 크기 증가 (자세 확인 용이하게)
   return orientation === 'portrait'
-    ? { width: 180, height: 320 }  // 세로: 9:16 비율
-    : { width: 320, height: 240 }; // 가로: 4:3 비율
+    ? { width: 300, height: 400 }  // 세로: 3:4 비율 (기존 240x320)
+    : { width: 400, height: 300 }; // 가로: 4:3 비율 (기존 320x240)
 }
 
 interface ExercisePageProps {
@@ -151,11 +209,15 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const [npcDialogue, setNpcDialogue] = useState('');
   const [npcEmotion, setNpcEmotion] = useState<'normal' | 'happy' | 'serious'>('normal');
   const [isComplete, setIsComplete] = useState(false);
-  const [performanceRating, setPerformanceRating] = useState<'perfect' | 'good' | 'normal'>('normal');
+  const [performanceRating, setPerformanceRating] = useState<PerformanceRating>('normal');
   const [completionStory, setCompletionStory] = useState<string>('');
   const [detectorError, setDetectorError] = useState<string | null>(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveredReps, setRecoveredReps] = useState(0);
+
+  // VRM 애니메이션/표정 상태
+  const [vrmAnimationUrl, setVrmAnimationUrl] = useState<string | null>(null);
+  const [vrmExpression, setVrmExpression] = useState<ExpressionState | null>(null);
 
   // MediaPipe 초기화 후 3D 로드를 위한 지연 상태
   const [mediaPipeReady, setMediaPipeReady] = useState(false);
@@ -178,10 +240,15 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const elapsedSecondsRef = useRef(0);
   const sessionStartTimeRef = useRef<number | null>(null);
 
-  // 홀드 타이머 상태 (플랭크 운동용)
+  // 홀드 타이머 상태 (홀드 운동용)
   const [holdTime, setHoldTime] = useState(0);
-  const isHoldExercise = exerciseId === 'plank_hold';
-  const targetHoldTime = 30; // 플랭크 기본 30초
+  const holdExercises: ExerciseType[] = ['wall_squat', 'seated_core_hold', 'standing_anti_extension_hold'];
+  const isHoldExercise = holdExercises.includes(exerciseId);
+  const targetHoldTime = exerciseId === 'wall_squat' ? 30 : 10; // wall_squat: 30초, 코어: 10초
+
+  // 씬 설정 (Utonics 벤치마킹: 조명/카메라/헬퍼)
+  const [showSceneSettings, setShowSceneSettings] = useState(false);
+  const sceneSettings = useSceneSettings();
 
   const colors = WORLDVIEW_COLORS[currentWorldview];
 
@@ -342,9 +409,21 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   }, [countdown, startSession, info.targetReps, currentWorldview, getSessionState, recoveredReps, incrementReps]);
 
   // 운동 완료 처리
-  const handleExerciseComplete = useCallback(async (rating: 'perfect' | 'good' | 'normal') => {
+  const handleExerciseComplete = useCallback(async (rating: PerformanceRating) => {
     setPerformanceRating(rating);
     setIsComplete(true);
+
+    // VRM 완료 애니메이션 재생
+    const animationUrl = getRandomCompletionAnimation(rating);
+    setVrmAnimationUrl(animationUrl);
+
+    // 완료 표정 설정
+    const expressionMap: Record<PerformanceRating, ExpressionState> = {
+      perfect: { name: 'happy', intensity: 1.0 },
+      good: { name: 'happy', intensity: 0.7 },
+      normal: { name: 'relaxed', intensity: 0.5 },
+    };
+    setVrmExpression(expressionMap[rating]);
 
     // 세션 복구 데이터 정리
     sessionRecoveryService.stopAutoSave();
@@ -403,6 +482,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const handlePoseDetected = useCallback((landmarks: Landmark[] | null) => {
     // MediaPipe가 포즈 데이터를 반환하면 준비 완료
     if (landmarks && !mediaPipeReady) {
+      console.log('[3D Loading] MediaPipe detected pose, setting mediaPipeReady=true');
       setMediaPipeReady(true);
     }
 
@@ -461,26 +541,49 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     updateAngle(result.currentAngle);
     setFeedback(result.feedback);
 
+    // VRM 표정 업데이트 (운동 중, 완료 애니메이션 재생 중이 아닐 때)
+    if (!isComplete && !vrmAnimationUrl) {
+      const newExpression = getExpressionForAccuracy(result.accuracy);
+      setVrmExpression(newExpression);
+    }
+
     // 홀드 타이머 업데이트 (플랭크, 사이드 플랭크)
     if (isHoldExercise && result.holdProgress !== undefined) {
       setHoldTime(result.holdProgress * targetHoldTime);
     }
-  }, [isActive, setPhase, updateAccuracy, updateAngle, setFeedback, incrementReps, playSuccessSFX, targetReps, handleExerciseComplete, isHoldExercise, targetHoldTime, mediaPipeReady, setPoseLandmarks]);
+  }, [isActive, setPhase, updateAccuracy, updateAngle, setFeedback, incrementReps, playSuccessSFX, targetReps, handleExerciseComplete, isHoldExercise, targetHoldTime, mediaPipeReady, setPoseLandmarks, isComplete, vrmAnimationUrl]);
 
   // MediaPipe 준비 후 3D 로드 활성화 (WebGL 컨텍스트 충돌 방지)
+  // canLoad3D를 의존성에서 제외하여 타이머가 취소되지 않도록 함
+  const canLoad3DTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (mediaPipeReady && show3DCharacter && !canLoad3D) {
-      // MediaPipe가 안정화된 후 3D 로드 (1초 지연)
-      const timer = setTimeout(() => {
+    // 3D 설정이 비활성화되면 즉시 해제
+    if (!show3DCharacter) {
+      if (canLoad3DTimerRef.current) {
+        clearTimeout(canLoad3DTimerRef.current);
+        canLoad3DTimerRef.current = null;
+      }
+      setCanLoad3D(false);
+      return;
+    }
+
+    // MediaPipe 준비되면 3D 로드 활성화
+    if (mediaPipeReady && show3DCharacter) {
+      console.log('[3D Loading] MediaPipe ready, scheduling 3D load in 1 second...');
+      canLoad3DTimerRef.current = setTimeout(() => {
+        console.log('[3D Loading] Timer fired, enabling 3D...');
         setCanLoad3D(true);
       }, 1000);
-      return () => clearTimeout(timer);
+
+      return () => {
+        if (canLoad3DTimerRef.current) {
+          clearTimeout(canLoad3DTimerRef.current);
+          canLoad3DTimerRef.current = null;
+        }
+      };
     }
-    // 3D 설정이 비활성화되면 즉시 해제
-    if (!show3DCharacter && canLoad3D) {
-      setCanLoad3D(false);
-    }
-  }, [mediaPipeReady, show3DCharacter, canLoad3D]);
+  }, [mediaPipeReady, show3DCharacter]);
 
   // 종료
   const handleEnd = () => {
@@ -507,8 +610,17 @@ export default function ExercisePage({ params }: ExercisePageProps) {
             <Scene
               modelUrl={modelUrl}
               enableControls={!isActive}
-              showGrid={false}
+              showGrid={sceneSettings.helpers.showGrid}
+              showAxes={sceneSettings.helpers.showAxes}
               backgroundColor={colors.background}
+              animationUrl={vrmAnimationUrl}
+              onAnimationEnd={() => {
+                console.log('[ExercisePage] Animation ended');
+                setVrmAnimationUrl(null);
+              }}
+              expression={vrmExpression}
+              lighting={sceneSettings.lighting}
+              cameraAngle={sceneSettings.cameraAngle}
             />
           </MediaErrorBoundary>
         </div>
@@ -539,20 +651,59 @@ export default function ExercisePage({ params }: ExercisePageProps) {
           </p>
         </div>
 
-        {/* 3D 토글 버튼 */}
-        <button
-          onClick={() => updateSetting('show3DCharacter', !show3DCharacter)}
-          className={`px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 transition-colors ${
-            show3DCharacter
-              ? 'bg-purple-500/50 text-white'
-              : 'bg-black/30 text-white/70 hover:bg-black/50'
-          }`}
-          title={show3DCharacter ? '3D 캐릭터 끄기' : '3D 캐릭터 켜기'}
-        >
-          <Icon name="cube-outline" size={18} color={show3DCharacter ? '#FFFFFF' : '#FFFFFF99'} />
-          <span className="text-sm font-medium">3D</span>
-        </button>
+        {/* 3D 토글 + 씬 설정 버튼 */}
+        <div className="flex items-center gap-2">
+          {/* 씬 설정 버튼 (3D 캐릭터 활성화 시에만 표시) */}
+          {show3DCharacter && (
+            <button
+              onClick={() => setShowSceneSettings(!showSceneSettings)}
+              className={`p-2 rounded-full backdrop-blur-sm transition-colors ${
+                showSceneSettings
+                  ? 'bg-purple-500/50 text-white'
+                  : 'bg-black/30 text-white/70 hover:bg-black/50'
+              }`}
+              title="씬 설정"
+            >
+              <Icon name="settings-outline" size={18} color={showSceneSettings ? '#FFFFFF' : '#FFFFFF99'} />
+            </button>
+          )}
+
+          {/* 3D 토글 버튼 */}
+          <button
+            onClick={() => updateSetting('show3DCharacter', !show3DCharacter)}
+            className={`px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 transition-colors ${
+              show3DCharacter
+                ? 'bg-purple-500/50 text-white'
+                : 'bg-black/30 text-white/70 hover:bg-black/50'
+            }`}
+            title={show3DCharacter ? '3D 캐릭터 끄기' : '3D 캐릭터 켜기'}
+          >
+            <Icon name="cube-outline" size={18} color={show3DCharacter ? '#FFFFFF' : '#FFFFFF99'} />
+            <span className="text-sm font-medium">3D</span>
+          </button>
+        </div>
       </div>
+
+      {/* 씬 설정 패널 (Utonics 벤치마킹) */}
+      {show3DCharacter && showSceneSettings && (
+        <div className="absolute top-20 right-4 z-20 w-64">
+          <SceneSettingsPanel
+            lighting={sceneSettings.lighting}
+            lightingPreset={sceneSettings.lightingPreset}
+            onLightingPresetChange={sceneSettings.setLightingPreset}
+            onAmbientChange={sceneSettings.setAmbientIntensity}
+            onDirectionalChange={sceneSettings.setDirectionalIntensity}
+            onHemisphereChange={sceneSettings.setHemisphereIntensity}
+            cameraAngle={sceneSettings.cameraAngle}
+            onCameraAngleChange={sceneSettings.setCameraAngle}
+            helpers={sceneSettings.helpers}
+            onToggleGrid={sceneSettings.toggleGrid}
+            onToggleAxes={sceneSettings.toggleAxes}
+            onReset={sceneSettings.resetToDefaults}
+            compact
+          />
+        </div>
+      )}
 
       {/* 카메라 피드 */}
       <div className={`absolute z-10 ${
@@ -572,6 +723,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
                   width={width}
                   height={height}
                   showSkeleton={true}
+                  showHandSkeleton={false}  // 카메라 오버레이는 깔끔하게
+                  enableHandTracking={true} // 손 추적은 활성화 (VRM 애니메이션용)
                   worldview={currentWorldview}
                   onPoseDetected={handlePoseDetected}
                 />

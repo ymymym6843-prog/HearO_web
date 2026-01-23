@@ -22,6 +22,7 @@ const PHASE_CONFIG: Record<ExercisePhase, { label: string; color: string; icon: 
   hold: { label: '유지', color: '#10B981', icon: 'hand-left-outline' },
   up: { label: '올라가기', color: '#8B5CF6', icon: 'arrow-up-outline' },
   rest: { label: '휴식', color: '#9CA3AF', icon: 'pause-outline' },
+  transition: { label: '전환', color: '#6366F1', icon: 'swap-horizontal-outline' },
 };
 
 export const PhaseIndicator = memo(function PhaseIndicator({ phase, themeColor }: PhaseIndicatorProps) {

@@ -24,6 +24,15 @@ export interface Database {
           full_name: string | null;
           avatar_url: string | null;
           preferred_worldview: string | null;
+          // 의료 재활 앱 필수 정보
+          birthdate: string | null;
+          gender: 'male' | 'female' | 'other' | null;
+          // 약관 동의 정보
+          consent_terms: boolean;
+          consent_privacy: boolean;
+          consent_health: boolean;
+          consent_marketing: boolean;
+          consented_at: string | null;
         };
         Insert: {
           id: string;
@@ -33,6 +42,13 @@ export interface Database {
           full_name?: string | null;
           avatar_url?: string | null;
           preferred_worldview?: string | null;
+          birthdate?: string | null;
+          gender?: 'male' | 'female' | 'other' | null;
+          consent_terms?: boolean;
+          consent_privacy?: boolean;
+          consent_health?: boolean;
+          consent_marketing?: boolean;
+          consented_at?: string | null;
         };
         Update: {
           id?: string;
@@ -42,6 +58,13 @@ export interface Database {
           full_name?: string | null;
           avatar_url?: string | null;
           preferred_worldview?: string | null;
+          birthdate?: string | null;
+          gender?: 'male' | 'female' | 'other' | null;
+          consent_terms?: boolean;
+          consent_privacy?: boolean;
+          consent_health?: boolean;
+          consent_marketing?: boolean;
+          consented_at?: string | null;
         };
         Relationships: [];
       };

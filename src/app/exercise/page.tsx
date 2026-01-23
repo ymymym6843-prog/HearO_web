@@ -63,11 +63,11 @@ interface HandExerciseInfo {
   implemented: boolean;
 }
 
-// MVP 전신 운동 목록 (6개) - 웹캠 단일 카메라 최적화
+// MVP 전신 운동 목록 (14개) - 웹캠 환경/재활 안전성/인식 안정성 기준
 // koreanName: 기존 영어식 유지 (스토리/TTS 싱크)
 // description: 사용자 친화적 설명
 const bodyExercises: ExerciseInfo[] = [
-  // === 하체 운동 (2개) ===
+  // === 하체 운동 (6개) ===
   {
     id: 'squat',
     name: 'Squat',
@@ -78,71 +78,164 @@ const bodyExercises: ExerciseInfo[] = [
     implemented: true,
   },
   {
-    id: 'lunge',
-    name: 'Lunge',
-    koreanName: '런지',
-    description: '한 발을 크게 앞으로 내딛으며 굽히기',
+    id: 'wall_squat',
+    name: 'Wall Squat',
+    koreanName: '벽 스쿼트',
+    description: '벽에 등을 대고 앉은 자세 유지하기',
     category: 'lower',
-    difficulty: 'normal',
-    implemented: true,
-  },
-
-  // === 상체 운동 (2개) ===
-  {
-    id: 'bicep_curl',
-    name: 'Bicep Curl',
-    koreanName: '바이셉컬',
-    description: '팔을 굽혀 덤벨 들어올리기',
-    category: 'upper',
     difficulty: 'easy',
     implemented: true,
   },
   {
-    id: 'arm_raise',
-    name: 'Arm Raise',
-    koreanName: '암레이즈',
+    id: 'chair_stand',
+    name: 'Chair Stand',
+    koreanName: '의자 앉았다 일어나기',
+    description: '의자에서 앉았다 일어서기 반복',
+    category: 'lower',
+    difficulty: 'easy',
+    implemented: true,
+  },
+  {
+    id: 'straight_leg_raise',
+    name: 'Straight Leg Raise',
+    koreanName: '누워서 다리 들기',
+    description: '누운 자세에서 다리를 들어 올리기',
+    category: 'lower',
+    difficulty: 'easy',
+    implemented: true,
+  },
+  {
+    id: 'standing_march_slow',
+    name: 'Standing March Slow',
+    koreanName: '서서 천천히 행진',
+    description: '서서 제자리에서 천천히 행진하기',
+    category: 'lower',
+    difficulty: 'easy',
+    implemented: true,
+  },
+  {
+    id: 'seated_knee_lift',
+    name: 'Seated Knee Lift',
+    koreanName: '앉아서 무릎 들기',
+    description: '앉아서 무릎을 들어 올리기',
+    category: 'lower',
+    difficulty: 'easy',
+    implemented: true,
+  },
+
+  // === 상체 운동 (4개) ===
+  {
+    id: 'standing_arm_raise_front',
+    name: 'Standing Arm Raise Front',
+    koreanName: '팔 앞으로 들기',
     description: '팔을 앞으로 들어올리기',
     category: 'upper',
     difficulty: 'easy',
     implemented: true,
   },
-
-  // === 전신/코어 운동 (2개) ===
   {
-    id: 'high_knees',
-    name: 'High Knees',
-    koreanName: '하이니즈',
-    description: '제자리에서 무릎을 높이 들며 뛰기',
-    category: 'core',
-    difficulty: 'hard',
+    id: 'shoulder_abduction',
+    name: 'Shoulder Abduction',
+    koreanName: '어깨 벌리기',
+    description: '팔을 옆으로 벌려 들어올리기',
+    category: 'upper',
+    difficulty: 'easy',
     implemented: true,
   },
   {
-    id: 'plank_hold',
-    name: 'Plank Hold',
-    koreanName: '플랭크',
-    description: '플랭크 자세를 유지하기',
+    id: 'elbow_flexion',
+    name: 'Elbow Flexion',
+    koreanName: '팔꿈치 굽히기',
+    description: '팔꿈치를 천천히 굽혔다 펴기',
+    category: 'upper',
+    difficulty: 'easy',
+    implemented: true,
+  },
+  {
+    id: 'wall_push',
+    name: 'Wall Push',
+    koreanName: '벽 밀기',
+    description: '벽에 손을 대고 밀기',
+    category: 'upper',
+    difficulty: 'easy',
+    implemented: true,
+  },
+
+  // === 코어 운동 (4개) ===
+  {
+    id: 'seated_core_hold',
+    name: 'Seated Core Hold',
+    koreanName: '앉아서 코어 버티기',
+    description: '앉아서 코어에 힘을 주고 유지하기',
     category: 'core',
-    difficulty: 'normal',
+    difficulty: 'easy',
+    implemented: true,
+  },
+  {
+    id: 'standing_anti_extension_hold',
+    name: 'Standing Anti Extension Hold',
+    koreanName: '서서 허리 버티기',
+    description: '서서 허리를 중립으로 유지하기',
+    category: 'core',
+    difficulty: 'easy',
+    implemented: true,
+  },
+  {
+    id: 'standing_arm_raise_core',
+    name: 'Standing Arm Raise Core',
+    koreanName: '코어 유지하며 팔 들기',
+    description: '코어 안정화하면서 팔 들기',
+    category: 'core',
+    difficulty: 'easy',
+    implemented: true,
+  },
+  {
+    id: 'bridge',
+    name: 'Bridge',
+    koreanName: '브릿지',
+    description: '누워서 엉덩이 들어올리기',
+    category: 'core',
+    difficulty: 'easy',
     implemented: true,
   },
 ];
 
-// 손 재활 운동 목록
+// 손 재활 운동 목록 (8개 MVP)
 const handExercises: HandExerciseInfo[] = [
+  // === ROM/가동성 (3개) ===
   {
     id: 'finger_flexion',
     name: 'Finger Flexion',
-    koreanName: '손가락 굴곡/신전',
-    description: '손가락을 펴고 주먹을 쥐는 운동',
+    koreanName: '손가락 굽히기/펴기',
+    description: '손가락을 천천히 굽혔다 펴는 운동',
     icon: 'hand-left-outline',
     difficulty: 'easy',
     implemented: true,
   },
   {
+    id: 'finger_spread',
+    name: 'Finger Spread',
+    koreanName: '손가락 벌리기',
+    description: '손가락을 최대한 벌리는 운동',
+    icon: 'hand-left-outline',
+    difficulty: 'easy',
+    implemented: true,
+  },
+  {
+    id: 'wrist_flexion',
+    name: 'Wrist Flexion',
+    koreanName: '손목 굽히기/펴기',
+    description: '손목을 천천히 굽혔다 펴는 운동',
+    icon: 'hand-left-outline',
+    difficulty: 'easy',
+    implemented: true,
+  },
+
+  // === 협응/힘줄 (3개) ===
+  {
     id: 'tendon_glide',
     name: 'Tendon Glide',
-    koreanName: '힘줄 미끄럼 운동',
+    koreanName: '힘줄 글라이딩',
     description: '5단계 손 모양으로 힘줄 스트레칭',
     icon: 'hand-left-outline',
     difficulty: 'normal',
@@ -158,29 +251,31 @@ const handExercises: HandExerciseInfo[] = [
     implemented: true,
   },
   {
-    id: 'finger_spread',
-    name: 'Finger Spread',
-    koreanName: '손가락 벌리기',
-    description: '손가락을 최대한 벌리는 운동',
-    icon: 'hand-left-outline',
-    difficulty: 'easy',
-    implemented: true,
-  },
-  {
     id: 'grip_squeeze',
     name: 'Grip Squeeze',
-    koreanName: '그립 쥐기',
+    koreanName: '주먹 쥐기',
     description: '주먹을 꽉 쥐었다 풀기',
     icon: 'hand-left-outline',
     difficulty: 'easy',
     implemented: true,
   },
+
+  // === 정밀/기능 (2개) ===
   {
-    id: 'wrist_rotation',
-    name: 'Wrist Rotation',
-    koreanName: '손목 회전',
-    description: '손목을 원형으로 돌리는 운동',
-    icon: 'refresh-outline',
+    id: 'pinch_hold',
+    name: 'Pinch Hold',
+    koreanName: '집게 집기 유지',
+    description: '엄지와 검지로 집는 자세 유지',
+    icon: 'hand-left-outline',
+    difficulty: 'normal',
+    implemented: true,
+  },
+  {
+    id: 'finger_tap_sequence',
+    name: 'Finger Tap Sequence',
+    koreanName: '손가락 순차 터치',
+    description: '엄지로 각 손가락을 순서대로 터치',
+    icon: 'hand-left-outline',
     difficulty: 'normal',
     implemented: true,
   },

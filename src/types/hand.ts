@@ -172,14 +172,19 @@ export type HandGesture =
   | 'full_fist'      // 완전 주먹 (힘줄 미끄럼 4단계)
   | 'unknown';
 
-/** 재활 운동 타입 */
+/** 재활 운동 타입 (MVP 8개) */
 export type HandRehabExercise =
-  | 'finger_flexion'       // 손가락 굴곡/신전
-  | 'tendon_glide'         // 힘줄 미끄럼 (5단계)
-  | 'thumb_opposition'     // 엄지-손가락 터치
+  // ROM/가동성 (3개)
+  | 'finger_flexion'       // 손가락 굽히기/펴기
   | 'finger_spread'        // 손가락 벌리기
-  | 'grip_squeeze'         // 그립 운동
-  | 'wrist_rotation';      // 손목 회전
+  | 'wrist_flexion'        // 손목 굽히기/펴기
+  // 협응/힘줄 (3개)
+  | 'tendon_glide'         // 힘줄 글라이딩 (5 제스처)
+  | 'thumb_opposition'     // 엄지-손가락 터치
+  | 'grip_squeeze'         // 주먹 쥐기
+  // 정밀/기능 (2개)
+  | 'pinch_hold'           // 집게 집기 유지
+  | 'finger_tap_sequence'; // 손가락 순차 터치
 
 /** 재활 운동 정의 */
 export interface HandRehabDefinition {
@@ -194,13 +199,14 @@ export interface HandRehabDefinition {
   holdSeconds?: number;           // 유지 시간
 }
 
-/** 재활 운동 정의 목록 */
+/** 재활 운동 정의 목록 (MVP 8개) */
 export const HAND_REHAB_DEFINITIONS: Record<HandRehabExercise, HandRehabDefinition> = {
+  // ROM/가동성 (3개)
   finger_flexion: {
     type: 'finger_flexion',
     name: 'Finger Flexion/Extension',
-    nameKo: '손가락 굴곡/신전',
-    description: '손가락을 완전히 펴고 주먹을 쥐는 운동',
+    nameKo: '손가락 굽히기/펴기',
+    description: '손가락을 천천히 굽혔다 펴는 운동',
     targetConditions: ['관절염', '손목터널증후군', '건염'],
     steps: [
       '손가락을 완전히 펴세요',
@@ -211,10 +217,44 @@ export const HAND_REHAB_DEFINITIONS: Record<HandRehabExercise, HandRehabDefiniti
     repetitions: 10,
     holdSeconds: 5,
   },
+  finger_spread: {
+    type: 'finger_spread',
+    name: 'Finger Spread',
+    nameKo: '손가락 벌리기',
+    description: '손가락을 최대한 벌리는 운동',
+    targetConditions: ['관절염', '손 강화', '유연성 향상'],
+    steps: [
+      '손바닥을 펴세요',
+      '손가락을 최대한 벌리세요',
+      '5초간 유지하세요',
+      '손가락을 모으세요',
+    ],
+    targetGestures: ['open'],
+    repetitions: 10,
+    holdSeconds: 5,
+  },
+  wrist_flexion: {
+    type: 'wrist_flexion',
+    name: 'Wrist Flexion/Extension',
+    nameKo: '손목 굽히기/펴기',
+    description: '손목을 천천히 굽혔다 펴는 운동',
+    targetConditions: ['손목터널증후군', '손목 유연성', '관절염'],
+    steps: [
+      '손바닥을 아래로 향하세요',
+      '손목을 위로 굽히세요 (신전)',
+      '3초간 유지하세요',
+      '손목을 아래로 굽히세요 (굴곡)',
+      '3초간 유지하세요',
+    ],
+    repetitions: 10,
+    holdSeconds: 3,
+  },
+
+  // 협응/힘줄 (3개)
   tendon_glide: {
     type: 'tendon_glide',
     name: 'Tendon Gliding Exercise',
-    nameKo: '힘줄 미끄럼 운동',
+    nameKo: '힘줄 글라이딩',
     description: '5단계 손 모양으로 힘줄 스트레칭',
     targetConditions: ['손목터널증후군', '방아쇠 손가락', '건초염'],
     steps: [
@@ -242,26 +282,10 @@ export const HAND_REHAB_DEFINITIONS: Record<HandRehabExercise, HandRehabDefiniti
     ],
     repetitions: 10,
   },
-  finger_spread: {
-    type: 'finger_spread',
-    name: 'Finger Spread',
-    nameKo: '손가락 벌리기',
-    description: '손가락을 최대한 벌리는 운동',
-    targetConditions: ['관절염', '손 강화', '유연성 향상'],
-    steps: [
-      '손바닥을 펴세요',
-      '손가락을 최대한 벌리세요',
-      '5초간 유지하세요',
-      '손가락을 모으세요',
-    ],
-    targetGestures: ['open'],
-    repetitions: 10,
-    holdSeconds: 5,
-  },
   grip_squeeze: {
     type: 'grip_squeeze',
     name: 'Grip Squeeze',
-    nameKo: '그립 쥐기',
+    nameKo: '주먹 쥐기',
     description: '주먹을 꽉 쥐었다 풀기',
     targetConditions: ['관절염', '손 강화', '그립력 향상'],
     steps: [
@@ -274,16 +298,36 @@ export const HAND_REHAB_DEFINITIONS: Record<HandRehabExercise, HandRehabDefiniti
     repetitions: 10,
     holdSeconds: 5,
   },
-  wrist_rotation: {
-    type: 'wrist_rotation',
-    name: 'Wrist Rotation',
-    nameKo: '손목 회전',
-    description: '손목을 원형으로 돌리는 운동',
-    targetConditions: ['손목터널증후군', '손목 유연성', '관절염'],
+
+  // 정밀/기능 (2개)
+  pinch_hold: {
+    type: 'pinch_hold',
+    name: 'Pinch Hold',
+    nameKo: '집게 집기 유지',
+    description: '엄지와 검지로 집는 자세 유지',
+    targetConditions: ['손 기능 회복', '미세운동 향상', '그립력 향상'],
     steps: [
-      '주먹을 쥐세요',
-      '손목을 시계 방향으로 5회 돌리세요',
-      '반시계 방향으로 5회 돌리세요',
+      '엄지와 검지를 마주 대세요',
+      '집게 모양을 만드세요',
+      '5초간 유지하세요',
+      '천천히 손가락을 펴세요',
+    ],
+    targetGestures: ['pinch'],
+    repetitions: 10,
+    holdSeconds: 5,
+  },
+  finger_tap_sequence: {
+    type: 'finger_tap_sequence',
+    name: 'Finger Tap Sequence',
+    nameKo: '손가락 순차 터치',
+    description: '엄지로 각 손가락을 순서대로 터치',
+    targetConditions: ['뇌졸중 재활', '손 협응력', '미세운동 향상'],
+    steps: [
+      '엄지를 검지에 터치하세요',
+      '엄지를 중지에 터치하세요',
+      '엄지를 약지에 터치하세요',
+      '엄지를 새끼에 터치하세요',
+      '역순으로 반복하세요',
     ],
     repetitions: 5,
   },

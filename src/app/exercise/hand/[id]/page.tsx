@@ -29,14 +29,19 @@ import { ttsService } from '@/services/ttsService';
 import { sfxService } from '@/services/sfxService';
 import { NPCDialogue } from '@/components/story/NPCDialogue';
 
-// 손 재활 운동 정보
+// 손 재활 운동 정보 (MVP 8개)
 const handExerciseInfo: Record<HandRehabExercise, { koreanName: string; targetReps: number }> = {
-  finger_flexion: { koreanName: '손가락 굴곡/신전', targetReps: 10 },
-  tendon_glide: { koreanName: '힘줄 미끄럼 운동', targetReps: 5 },
-  thumb_opposition: { koreanName: '엄지-손가락 터치', targetReps: 10 },
+  // ROM/가동성 (3개)
+  finger_flexion: { koreanName: '손가락 굽히기/펴기', targetReps: 10 },
   finger_spread: { koreanName: '손가락 벌리기', targetReps: 10 },
-  grip_squeeze: { koreanName: '그립 쥐기', targetReps: 10 },
-  wrist_rotation: { koreanName: '손목 회전', targetReps: 5 },
+  wrist_flexion: { koreanName: '손목 굽히기/펴기', targetReps: 10 },
+  // 협응/힘줄 (3개)
+  tendon_glide: { koreanName: '힘줄 글라이딩', targetReps: 5 },
+  thumb_opposition: { koreanName: '엄지-손가락 터치', targetReps: 10 },
+  grip_squeeze: { koreanName: '주먹 쥐기', targetReps: 10 },
+  // 정밀/기능 (2개)
+  pinch_hold: { koreanName: '집게 집기 유지', targetReps: 10 },
+  finger_tap_sequence: { koreanName: '손가락 순차 터치', targetReps: 5 },
 };
 
 export default function HandExercisePage() {
@@ -159,10 +164,12 @@ export default function HandExercisePage() {
   // 카메라 시작
   const startCamera = useCallback(async () => {
     try {
+      // 모바일에서는 더 유연한 해상도 요청
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: isMobile ? { ideal: 480 } : { ideal: 640 },
+          height: isMobile ? { ideal: 640 } : { ideal: 480 },
           facingMode: 'user',
         },
       });
@@ -424,8 +431,8 @@ export default function HandExercisePage() {
           />
           <canvas
             ref={canvasRef}
-            className="w-full"
-            style={{ aspectRatio: '4/3' }}
+            className="w-full h-auto"
+            style={{ maxHeight: '70vh' }}
           />
 
           {/* 좌상단 - 손 감지 상태 */}

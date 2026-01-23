@@ -1,0 +1,58 @@
+/**
+ * Galmuri Font CSS
+ *
+ * Galmuri는 한글 픽셀 폰트입니다.
+ * https://galmuri.quiple.dev/
+ *
+ * Fantasy, Idol, Zombie 세계관에서 사용
+ */
+
+/* Galmuri11 - 기본 픽셀 폰트 (11px 기준) */
+@font-face {
+  font-family: 'Galmuri11';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/Galmuri11.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/Galmuri11.woff') format('woff');
+}
+
+/* Galmuri11 Bold */
+@font-face {
+  font-family: 'Galmuri11';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/Galmuri11-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/Galmuri11-Bold.woff') format('woff');
+}
+
+/* Galmuri9 - 작은 픽셀 폰트 (9px 기준) */
+@font-face {
+  font-family: 'Galmuri9';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/Galmuri9.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/Galmuri9.woff') format('woff');
+}
+
+/* Galmuri14 - 큰 픽셀 폰트 (14px 기준) */
+@font-face {
+  font-family: 'Galmuri14';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/Galmuri14.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/Galmuri14.woff') format('woff');
+}
+
+/* GalmuriMono11 - 고정폭 픽셀 폰트 */
+@font-face {
+  font-family: 'GalmuriMono11';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/GalmuriMono11.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/quiple/galmuri/dist/GalmuriMono11.woff') format('woff');
+}

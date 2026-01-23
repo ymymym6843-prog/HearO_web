@@ -32,6 +32,16 @@ export interface SignUpOptions {
   password: string;
   username?: string;
   fullName?: string;
+  // 의료 재활 앱 필수 정보
+  birthdate?: string;
+  gender?: 'male' | 'female' | 'other';
+  // 약관 동의 정보
+  consents?: {
+    terms: boolean;
+    privacy: boolean;
+    health: boolean;
+    marketing: boolean;
+  };
 }
 
 // OAuth 제공자
@@ -104,7 +114,7 @@ class AuthService {
   /**
    * 이메일/비밀번호 회원가입
    */
-  async signUp({ email, password, username, fullName }: SignUpOptions): Promise<{
+  async signUp({ email, password, username, fullName, birthdate, gender, consents }: SignUpOptions): Promise<{
     user: User | null;
     session: Session | null;
     error: AuthError | null;
@@ -135,16 +145,25 @@ class AuthService {
         data: {
           username: username?.trim(),
           full_name: fullName?.trim(),
+          birthdate,
+          gender,
         },
       },
     });
 
-    // 프로필 생성
+    // 프로필 생성 (약관 동의 정보 포함)
     if (data.user && !error) {
       await this.createProfile({
         id: data.user.id,
         username,
         full_name: fullName,
+        birthdate,
+        gender,
+        consent_terms: consents?.terms ?? false,
+        consent_privacy: consents?.privacy ?? false,
+        consent_health: consents?.health ?? false,
+        consent_marketing: consents?.marketing ?? false,
+        consented_at: consents ? new Date().toISOString() : null,
       });
     }
 
