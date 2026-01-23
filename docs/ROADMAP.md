@@ -128,7 +128,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Phase 6: Story & NPC System (80% Complete)
+## Phase 6: Story & NPC System (90% Complete)
 
 ### Completed Tasks
 - [x] NPC character definitions (6 mentors)
@@ -137,10 +137,10 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - [x] Story JSON loader
 - [x] Epilogue content service
 - [x] NPC entrance animations
+- [x] NPC image assets (90 images: 6 worldviews × 5 NPCs × 3 emotions)
 
 ### Remaining Tasks
 - [ ] Complete story content for all worldviews
-- [ ] NPC image assets (currently using placeholders)
 - [ ] Dynamic story branching based on performance
 
 ---

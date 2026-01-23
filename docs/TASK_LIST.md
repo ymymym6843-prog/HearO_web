@@ -9,7 +9,7 @@
 | Theme System | 9 | 11 | 82% |
 | Exercise System | 14 | 22 | 64% |
 | TTS System | 6 | 9 | 67% |
-| Story & NPC | 6 | 9 | 67% |
+| Story & NPC | 7 | 9 | 78% |
 | Worldview Activation | 3 | 6 | 50% |
 | Performance | 5 | 9 | 56% |
 | Accessibility | 5 | 7 | 71% |
@@ -142,8 +142,8 @@
 | Story JSON loader | [x] | - | all_stories.json |
 | Epilogue content service | [x] | - | Grade-based |
 | NPC entrance animations | [x] | - | Framer Motion |
+| NPC image assets | [x] | - | 90 images (6 worldviews × 5 NPCs × 3 emotions) |
 | Complete story content | [ ] | High | All worldviews |
-| NPC image assets | [ ] | High | Replace placeholders |
 | Dynamic story branching | [ ] | Low | Performance-based |
 
 ---
@@ -218,10 +218,9 @@
 2. [ ] Complete hand rehabilitation exercises (8 remaining)
 
 ### High
-1. [ ] NPC image assets for all worldviews
-2. [ ] Complete story content for inactive worldviews
-3. [ ] Screen reader optimization
-4. [ ] Memory leak detection
+1. [ ] Complete story content for inactive worldviews
+2. [ ] Screen reader optimization
+3. [ ] Memory leak detection
 
 ### Medium
 1. [ ] Google Cloud TTS integration
