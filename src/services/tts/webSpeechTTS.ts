@@ -112,7 +112,7 @@ export function speakWithWebSpeech(
   text: string,
   options: WebSpeechOptions = {}
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
       log.warn('Web Speech API not available');
       resolve(); // 조용히 실패
@@ -191,7 +191,7 @@ export function isWebSpeechSupported(): boolean {
 // Export
 // ============================================================
 
-export default {
+const webSpeechTTSService = {
   speakWithWebSpeech,
   stopWebSpeech,
   isWebSpeechSpeaking,
@@ -200,3 +200,5 @@ export default {
   findKoreanVoice,
   waitForVoices,
 };
+
+export default webSpeechTTSService;

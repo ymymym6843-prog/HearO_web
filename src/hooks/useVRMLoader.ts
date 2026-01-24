@@ -82,7 +82,7 @@ function analyzeVRM(vrm: VRM): VRMAnalysis {
     const bones = vrm.humanoid.normalizedHumanBones;
 
     // Map 또는 Object 형태 모두 지원
-    const processBonesObject = (bones: Record<string, any>) => {
+    const processBonesObject = (bones: Record<string, unknown>) => {
       Object.keys(bones).forEach((name) => {
         boneNames.push(name);
         if (
@@ -111,7 +111,7 @@ function analyzeVRM(vrm: VRM): VRMAnalysis {
         }
       });
     } else if (typeof bones === 'object') {
-      processBonesObject(bones as Record<string, any>);
+      processBonesObject(bones as Record<string, unknown>);
     }
   }
 
@@ -257,8 +257,9 @@ export function useVRMLoader(options: UseVRMLoaderOptions): UseVRMLoaderReturn {
     );
   }, [modelPath, autoAnalyze]);
 
-  // 초기 로드
+  // 초기 로드 - VRM 모델 로딩 시작
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadVRM();
   }, [loadVRM]);
 

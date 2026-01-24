@@ -52,51 +52,7 @@ export function useBackgroundRemoval({
     }
   }, [customBackground]);
 
-  // Segmentation 초기화
-  useEffect(() => {
-    if (!enabled) {
-      segmenterRef.current = null;
-      setIsReady(false);
-      return;
-    }
-
-    const initSegmenter = async () => {
-      try {
-        const segmenter = new SelfieSegmentation({
-          locateFile: (file) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
-        });
-
-        segmenter.setOptions({
-          modelSelection,
-          selfieMode: true,
-        });
-
-        segmenter.onResults((results: Results) => {
-          renderWithBackground(results);
-        });
-
-        await segmenter.initialize();
-        segmenterRef.current = segmenter;
-        setIsReady(true);
-        setError(null);
-        logger.info('배경 분리 초기화 완료');
-      } catch (err) {
-        const message = err instanceof Error ? err.message : '초기화 실패';
-        setError(message);
-        logger.error('배경 분리 초기화 실패', err);
-      }
-    };
-
-    initSegmenter();
-
-    return () => {
-      segmenterRef.current?.close();
-      segmenterRef.current = null;
-    };
-  }, [enabled, modelSelection]);
-
-  // 배경 합성 렌더링
+  // 배경 합성 렌더링 (useEffect보다 먼저 정의)
   const renderWithBackground = useCallback((results: Results) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -134,6 +90,51 @@ export function useBackgroundRemoval({
     ctx.restore();
   }, []);
 
+  // Segmentation 초기화
+  useEffect(() => {
+    if (!enabled) {
+      segmenterRef.current = null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsReady(false);
+      return;
+    }
+
+    const initSegmenter = async () => {
+      try {
+        const segmenter = new SelfieSegmentation({
+          locateFile: (file) =>
+            `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
+        });
+
+        segmenter.setOptions({
+          modelSelection,
+          selfieMode: true,
+        });
+
+        segmenter.onResults((results: Results) => {
+          renderWithBackground(results);
+        });
+
+        await segmenter.initialize();
+        segmenterRef.current = segmenter;
+        setIsReady(true);
+        setError(null);
+        logger.info('배경 분리 초기화 완료');
+      } catch (_err) {
+        const message = _err instanceof Error ? _err.message : '초기화 실패';
+        setError(message);
+        logger.error('배경 분리 초기화 실패', _err);
+      }
+    };
+
+    initSegmenter();
+
+    return () => {
+      segmenterRef.current?.close();
+      segmenterRef.current = null;
+    };
+  }, [enabled, modelSelection, renderWithBackground]);
+
   // 프레임 처리
   const processFrame = useCallback(async (video: HTMLVideoElement) => {
     if (!enabled || !segmenterRef.current || !isReady) return;
@@ -149,8 +150,8 @@ export function useBackgroundRemoval({
 
     try {
       await segmenterRef.current.send({ image: video });
-    } catch (err) {
-      // 프레임 드롭은 정상적인 현상
+    } catch {
+      // 프레임 드롭은 정상적인 현상 - 에러 무시
     }
   }, [enabled, isReady]);
 

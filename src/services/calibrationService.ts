@@ -6,7 +6,7 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('CalibrationService');
+const _logger = createLogger('CalibrationService');
 import type { CalibrationJoint, CalibrationResult } from '@/components/calibration/CalibrationGuide';
 
 // 로컬 스토리지 키

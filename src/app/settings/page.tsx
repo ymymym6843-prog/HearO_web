@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -25,7 +25,7 @@ export default function SettingsPage() {
 
   // Lazy initialization으로 haptic 지원 여부 확인 (cascading render 방지)
   const [hapticSupported] = useState(() => hapticService.checkSupport());
-  const [isLoaded, setIsLoaded] = useState(true); // 동기적 초기화이므로 즉시 true
+  const [isLoaded] = useState(true); // 동기적 초기화이므로 즉시 true
 
   // 설정 변경 시 햅틱 피드백
   const handleUpdateSetting = <K extends keyof typeof DEFAULT_SETTINGS>(

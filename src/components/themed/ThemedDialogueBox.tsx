@@ -82,10 +82,11 @@ export function ThemedDialogueBox({
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cursorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 텍스트 변경 시 리셋
+  // 텍스트 변경 시 리셋 - 타이핑 애니메이션 초기화
   useEffect(() => {
     fullTextRef.current = text;
     charIndexRef.current = 0;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDisplayedText('');
     setIsTyping(true);
   }, [text]);

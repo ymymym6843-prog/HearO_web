@@ -373,7 +373,7 @@ export function gradeToEndingTier(grade: PerformanceGrade): EndingTier {
 // Export
 // ============================================================
 
-export default {
+const prerenderedContentService = {
   // TTS
   getTTSAudioUrl,
   checkTTSAudioExists,
@@ -399,3 +399,5 @@ export default {
   WORLDVIEW_MENTORS,
   TTS_SUPPORTED_EXERCISES,
 };
+
+export default prerenderedContentService;

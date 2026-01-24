@@ -283,7 +283,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { worldViewId, storyType, systemPrompt, userPrompt, userId }: StoryRequest =
+    const { worldViewId: _worldViewId, storyType: _storyType, systemPrompt, userPrompt, userId }: StoryRequest =
       await req.json();
 
     // 입력 검증

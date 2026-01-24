@@ -9,11 +9,11 @@
  * - 자동 숨김 타이머
  */
 
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import type { WorldviewType } from '@/types/vrm';
-import { getMainNPC, getNPCImagePath, type NPCCharacter, type NPCEmotion } from '@/constants/npcCharacters';
+import { getMainNPC, getNPCImagePath, NPC_CHARACTERS, type NPCCharacter, type NPCEmotion } from '@/constants/npcCharacters';
 
 // ============================================
 // Types
@@ -180,40 +180,49 @@ export function NPCMiniAvatar({
   position = 'bottom-left',
   alwaysShowAvatar = false,
 }: NPCMiniAvatarProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [currentMessage, setCurrentMessage] = useState<NPCMessage | null>(null);
+  // 타이머로 숨김 상태 추적 (ref로 관리하여 cascading render 방지)
+  const [hiddenMessageId, setHiddenMessageId] = useState<string | null>(null);
+  const messageKeyRef = useRef<string | null>(null);
+
+  // 메시지 고유 키 생성 (text + timestamp 기반)
+  const messageKey = message ? `${message.text}-${message.duration ?? 0}` : null;
+
+  // 메시지가 변경되면 ref 업데이트 (렌더링 중에 동기적으로 처리)
+  if (messageKey !== messageKeyRef.current) {
+    messageKeyRef.current = messageKey;
+    // 새 메시지면 hidden 상태 초기화 (외부에서 이미 처리됨)
+  }
+
+  // 현재 메시지가 타이머로 숨겨졌는지 확인
+  const isHiddenByTimer = hiddenMessageId === messageKey;
+  const isVisible = !!message && !isHiddenByTimer;
+  const currentMessage = isVisible ? message : null;
 
   // NPC 정보
-  const npcId = currentMessage?.npcId || message?.npcId;
-  const npc = npcId
-    ? (require('@/constants/npcCharacters').NPC_CHARACTERS[worldview]?.[npcId] || getMainNPC(worldview))
+  const npcIdFromMessage = currentMessage?.npcId || message?.npcId;
+  const npc = npcIdFromMessage
+    ? (NPC_CHARACTERS[worldview]?.[npcIdFromMessage] || getMainNPC(worldview))
     : getMainNPC(worldview);
 
   const emotion = currentMessage?.emotion || message?.emotion || 'normal';
   const imagePath = getNPCImagePath(worldview, npc.id, emotion);
 
-  // 메시지 표시 처리
+  // 메시지 자동 숨김 타이머
   useEffect(() => {
-    if (message) {
-      setCurrentMessage(message);
-      setIsVisible(true);
-
-      // 자동 숨김 타이머
-      const duration = message.duration ?? DEFAULT_MESSAGE_DURATION;
-      if (duration > 0) {
-        const timer = setTimeout(() => {
-          setIsVisible(false);
-          setCurrentMessage(null);
-          onMessageClose?.();
-        }, duration);
-
-        return () => clearTimeout(timer);
-      }
-    } else {
-      setIsVisible(false);
-      setCurrentMessage(null);
+    if (!message || !messageKey) {
+      return;
     }
-  }, [message, onMessageClose]);
+
+    const duration = message.duration ?? DEFAULT_MESSAGE_DURATION;
+    if (duration > 0) {
+      const timer = setTimeout(() => {
+        setHiddenMessageId(messageKey);
+        onMessageClose?.();
+      }, duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [message, messageKey, onMessageClose]);
 
   // 아바타/메시지 모두 숨김 상태면 렌더링 안함
   if (!alwaysShowAvatar && !isVisible) return null;

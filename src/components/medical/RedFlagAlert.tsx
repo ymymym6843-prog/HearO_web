@@ -270,8 +270,8 @@ export function RedFlagBanner({
   const visibleAlerts = sortedAlerts.slice(0, maxVisible);
   const hiddenCount = alerts.length - maxVisible;
 
-  // stop 레벨 알림이 있으면 전체 화면
-  const hasStopAlert = visibleAlerts.some((a) => a.severity === 'stop');
+  // stop 레벨 알림이 있으면 전체 화면 (향후 전체화면 모드 구현 시 사용)
+  const _hasStopAlert = visibleAlerts.some((a) => a.severity === 'stop');
 
   if (alerts.length === 0) return null;
 

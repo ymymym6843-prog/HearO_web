@@ -255,7 +255,7 @@ async function drawImage(
   position: { x: number; y: number },
   size?: { width: number; height: number }
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
@@ -467,7 +467,7 @@ export async function shareSnapshot(result: SnapshotResult): Promise<boolean> {
   }
 }
 
-export default {
+const snapshotService = {
   captureCanvas,
   captureCanvasResized,
   composeImage,
@@ -475,3 +475,5 @@ export default {
   downloadSnapshot,
   shareSnapshot,
 };
+
+export default snapshotService;

@@ -128,7 +128,7 @@ export function HybridScene({
     console.log(`[HybridScene] phase=${currentPhase}, transitioning=${isTransitioning}, npc2D=${layers.npc2D}, vrm3D=${layers.vrm3D}`);
   }, [currentPhase, isTransitioning, layers.npc2D, layers.vrm3D]);
 
-  const [isVRMLoaded, setIsVRMLoaded] = useState(false);
+  const [, setIsVRMLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasInitializedPhase = useRef(false);
 

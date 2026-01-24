@@ -27,9 +27,10 @@ export default function StatisticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodFilter>('month');
 
-  // 데이터 로드
+  // 데이터 로드 - user.id 변경 시에만 실행
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   async function loadData() {

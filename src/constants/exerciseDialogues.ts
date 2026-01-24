@@ -187,8 +187,10 @@ export function createExerciseCompleteDialogue(
   };
 }
 
-export default {
+const exerciseDialogues = {
   createExerciseIntroDialogue,
   createExerciseCompleteDialogue,
   EXERCISE_KOREAN_NAMES,
 };
+
+export default exerciseDialogues;

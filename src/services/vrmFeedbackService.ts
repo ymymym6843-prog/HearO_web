@@ -115,7 +115,7 @@ export function getExpressionForPhase(
 export function setVRMExpression(
   vrm: VRM | null,
   expression: ExpressionState,
-  transitionTime: number = 200
+  _transitionTime: number = 200
 ): void {
   if (!vrm?.expressionManager) return;
 

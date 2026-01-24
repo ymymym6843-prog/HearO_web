@@ -37,8 +37,6 @@ import {
 } from '@/services/sessionRecoveryService';
 import {
   getRandomCompletionAnimation,
-  getExpressionForAccuracy,
-  type ExpressionState,
 } from '@/services/vrmFeedbackService';
 import { getPerformanceDialogue } from '@/constants/npcDialogueTemplates';
 import { getDetectorForExercise, resetDetector, type BaseDetector, type ExercisePhase as DetectorPhase } from '@/lib/exercise/detection';
@@ -49,7 +47,6 @@ import { Icon } from '@/components/ui/Icon';
 import { useSceneSettings } from '@/hooks/useSceneSettings';
 import { SceneSettingsPanel } from '@/components/three/SceneSettingsPanel';
 import type { AnimationPreset } from '@/components/three/VRMCharacter';
-import type { WorldviewId } from '@/constants/worldviews';
 
 // HybridScene 컴포넌트 (lazy load)
 const HybridScene = dynamic(() => import('@/components/hybrid/HybridScene'), { ssr: false });
@@ -193,9 +190,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     setFeedback,
   } = useExerciseStore();
   const {
-    isLoaded: isCharacterLoaded,
     resetCalibration,
-    setPoseLandmarks,
   } = useCharacterStore();
   const { show3DCharacter, updateSetting } = useSettingsStore();
 
@@ -222,9 +217,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveredReps, setRecoveredReps] = useState(0);
 
-  // VRM 애니메이션/표정 상태
-  const [vrmAnimationUrl, setVrmAnimationUrl] = useState<string | null>(null);
-  const [vrmExpression, setVrmExpression] = useState<ExpressionState | null>(null);
+  // VRM 애니메이션/표정 상태 (향후 HybridScene에 전달 예정)
+  const [_vrmAnimationUrl, setVrmAnimationUrl] = useState<string | null>(null);
 
   // MediaPipe 초기화 상태
   const [mediaPipeReady, setMediaPipeReady] = useState(false);
@@ -395,12 +389,6 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     setShowRecoveryModal(false);
   }, []);
 
-  // VN 대화 스킵 버튼 (intro phase에서만 표시)
-  const handleSkipDialogue = useCallback(() => {
-    // 대화 스킵하고 바로 전환
-    startTransition('exercise', { duration: 800 });
-  }, [startTransition]);
-
   // 캘리브레이션 완료 콜백
   const handleCalibrationComplete = () => {
     setShowCalibration(false);
@@ -448,12 +436,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     const animationUrl = getRandomCompletionAnimation(rating);
     setVrmAnimationUrl(animationUrl);
 
-    const expressionMap: Record<PerformanceRating, ExpressionState> = {
-      perfect: { name: 'happy', intensity: 1.0 },
-      good: { name: 'happy', intensity: 0.7 },
-      normal: { name: 'relaxed', intensity: 0.5 },
-    };
-    setVrmExpression(expressionMap[rating]);
+    // Note: VRM expression은 현재 HybridScene에서 직접 처리
+    // 향후 필요 시 vrmExpression state 추가하여 전달 가능
 
     sessionRecoveryService.stopAutoSave();
     sessionRecoveryService.clearSessionState();
@@ -548,15 +532,13 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     updateAngle(result.currentAngle);
     setFeedback(result.feedback);
 
-    if (!isComplete && !vrmAnimationUrl) {
-      const newExpression = getExpressionForAccuracy(result.accuracy);
-      setVrmExpression(newExpression);
-    }
+    // Note: VRM expression 업데이트는 HybridScene에서 처리
+    // 향후 실시간 표정 변경 필요 시 여기서 처리
 
     if (isHoldExercise && result.holdProgress !== undefined) {
       setHoldTime(result.holdProgress * targetHoldTime);
     }
-  }, [isActive, setPhase, updateAccuracy, updateAngle, setFeedback, incrementReps, playSuccessSFX, targetReps, handleExerciseComplete, isHoldExercise, targetHoldTime, mediaPipeReady, isComplete, vrmAnimationUrl]);
+  }, [isActive, setPhase, updateAccuracy, updateAngle, setFeedback, incrementReps, playSuccessSFX, targetReps, handleExerciseComplete, isHoldExercise, targetHoldTime, mediaPipeReady]);
 
   // 종료
   const handleEnd = () => {

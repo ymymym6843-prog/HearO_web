@@ -213,7 +213,7 @@ export function classifyError(error: unknown, statusCode?: number): TTSErrorType
  * Gemini 모델 전환 (Flash → Pro)
  */
 export function switchGeminiModel(): GeminiModel {
-  const previousModel = state.currentGeminiModel;
+  const _previousModel = state.currentGeminiModel;
 
   if (state.currentGeminiModel === 'flash') {
     state.currentGeminiModel = 'pro';
@@ -588,7 +588,7 @@ if (typeof window !== 'undefined') {
   loadState();
 }
 
-export default {
+const fallbackManager = {
   // 에러 분류
   classifyError,
 
@@ -623,3 +623,5 @@ export default {
   // 이벤트
   subscribeFallbackEvents,
 };
+
+export default fallbackManager;

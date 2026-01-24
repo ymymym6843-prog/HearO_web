@@ -14,7 +14,6 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import type { WorldviewId } from '@/constants/worldviews';
 
 // ============================================
 // Types

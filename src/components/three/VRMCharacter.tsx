@@ -63,7 +63,7 @@ export function VRMCharacter({
   onLoaded,
   onError,
   animationUrl,
-  onAnimationEnd,
+  onAnimationEnd: _onAnimationEnd,
   animationPreset = 'A', // 기본값: A (등장 → 대기)
   expression,
 }: VRMCharacterProps) {
@@ -94,8 +94,8 @@ export function VRMCharacter({
   // 애니메이션 재생 중 여부 (포즈 동기화 비활성화용)
   const [isPlayingVRMA, setIsPlayingVRMA] = useState(false);
 
-  // 초기 애니메이션 상태
-  const [initialAnimationPhase, setInitialAnimationPhase] = useState<'pending' | 'initial' | 'idle' | 'complete'>('pending');
+  // 초기 애니메이션 상태 (향후 애니메이션 시퀀스 관리에서 사용 예정)
+  const [_initialAnimationPhase, setInitialAnimationPhase] = useState<'pending' | 'initial' | 'idle' | 'complete'>('pending');
   const initialAnimationStartedRef = useRef(false);
 
   // 프리셋 애니메이션 재생 중 플래그 (animationUrl prop과 구분)

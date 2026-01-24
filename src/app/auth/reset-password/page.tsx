@@ -32,7 +32,7 @@ export default function ResetPasswordPage() {
       } else {
         setSuccess(true);
       }
-    } catch (err) {
+    } catch {
       setError('비밀번호 재설정 요청 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);

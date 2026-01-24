@@ -46,8 +46,9 @@ const WORLDVIEWS: WorldviewId[] = ['fantasy', 'sports', 'idol', 'sf', 'zombie', 
 // 메인 데모 컴포넌트
 function ThemeDemoContent() {
   const { theme, worldviewId, setTheme } = useTheme();
-  const dialogueClass = useDialogueBoxClass();
-  const buttonClass = useButtonClass();
+  // Note: 테마 훅 호출 (CSS 변수 적용용) - 반환값은 미사용
+  useDialogueBoxClass();
+  useButtonClass();
   const [showParticles, setShowParticles] = useState(true);
 
   const demoText = DEMO_TEXTS[worldviewId];

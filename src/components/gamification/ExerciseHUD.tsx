@@ -312,17 +312,14 @@ export function ExerciseHUD({
     'bottom-right': 'bottom-4 right-4',
   };
 
-  // XP 획득 처리
-  const handleXPGain = useCallback((reward: XPReward) => {
+  // XP 획득 처리 (향후 게이미피케이션 기능에서 사용 예정)
+  const _handleXPGain = useCallback((reward: XPReward) => {
     setXpPopups((prev) => [...prev, reward]);
   }, []);
 
   const removePopup = useCallback((index: number) => {
     setXpPopups((prev) => prev.filter((_, i) => i !== index));
   }, []);
-
-  // 단계 색상
-  const phaseColor = phase === 'RECOVERY' ? 'blue' : 'green';
 
   return (
     <>

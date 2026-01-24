@@ -44,9 +44,6 @@ interface UseExerciseDetectionReturn {
   // 액션
   processFrame: (landmarks: Landmark[]) => DetectionResult | null;
   reset: () => void;
-
-  // 유틸리티
-  detector: ReturnType<typeof getDetectorForExercise> | null;
 }
 
 /**
@@ -179,7 +176,6 @@ export function useExerciseDetection({
 
     return result;
   }, [
-    exerciseId,
     targetReps,
     throttleMs,
     enableHaptic,
@@ -226,9 +222,6 @@ export function useExerciseDetection({
     // 액션
     processFrame,
     reset,
-
-    // 유틸리티
-    detector: detectorRef.current,
   };
 }
 
@@ -278,7 +271,11 @@ export function useHoldExercise({
     if (holding !== isHolding) {
       setIsHolding(holding);
       if (enableHaptic) {
-        holding ? hapticService.holdStart() : hapticService.holdEnd();
+        if (holding) {
+          hapticService.holdStart();
+        } else {
+          hapticService.holdEnd();
+        }
       }
     }
 
@@ -303,7 +300,7 @@ export function useHoldExercise({
     setAccuracy(result.accuracy);
 
     return result;
-  }, [exerciseId, targetTime, isHolding, isCompleted, enableHaptic, onTimeUpdate, onComplete]);
+  }, [targetTime, isHolding, isCompleted, enableHaptic, onTimeUpdate, onComplete]);
 
   const reset = useCallback(() => {
     resetDetector(exerciseId);

@@ -65,7 +65,8 @@ export default function CalibrationPage() {
   const { showToast } = useToast();
   const [calibrations, setCalibrations] = useState<StoredCalibration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedJoint, setSelectedJoint] = useState<CalibrationJoint | null>(null);
+  // Note: selectedJoint은 향후 캘리브레이션 상세 보기에서 사용 예정
+  const [_selectedJoint, _setSelectedJoint] = useState<CalibrationJoint | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CalibrationJoint | null>(null);
 

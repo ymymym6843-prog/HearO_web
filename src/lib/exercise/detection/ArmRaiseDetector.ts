@@ -249,7 +249,7 @@ export class ArmRaiseDetector extends BaseDetector {
 }
 
 // 팩토리 함수들
-let armRaiseDetectors: Map<ExerciseType, ArmRaiseDetector> = new Map();
+const armRaiseDetectors: Map<ExerciseType, ArmRaiseDetector> = new Map();
 
 export function getArmRaiseDetector(exerciseType: ExerciseType = 'standing_arm_raise_front'): ArmRaiseDetector {
   if (!armRaiseDetectors.has(exerciseType)) {

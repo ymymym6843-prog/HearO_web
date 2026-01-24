@@ -27,15 +27,12 @@ import {
   type TTSProvider,
 } from './ttsRouter';
 import {
-  generateGeminiTTS,
   playGeminiTTS,
-  playWorldviewTTS,
   playEpilogueTTS as playGeminiEpilogueTTS,
   type VoiceContext,
   type GeminiTTSOptions,
 } from './geminiTTS';
 import {
-  generateGoogleCloudTTS,
   playGoogleCloudTTS,
 } from './googleCloudTTS';
 import {
@@ -44,7 +41,6 @@ import {
   isWebSpeechSupported,
 } from './webSpeechTTS';
 import {
-  getTTSAudioUrl,
   playEpilogueTTS as playPrerenderedEpilogueTTS,
   stopEpilogueTTS,
   checkTTSAudioExists,
@@ -58,13 +54,11 @@ import {
   recordGoogleCloudSuccess,
   recordGoogleCloudFailure,
   getCurrentGeminiModel,
-  switchGeminiModel,
   classifyError,
   shouldAttemptGeminiRecovery,
   shouldAttemptGoogleCloudRecovery,
   startGeminiRecoveryAttempt,
   startGoogleCloudRecoveryAttempt,
-  getActiveProvider,
   getFallbackStats,
   type GeminiModel,
   type FallbackStats,
@@ -494,7 +488,7 @@ export function getCurrentGeminiModelInfo(): GeminiModel {
 // Export
 // ============================================================
 
-export default {
+const hybridTTSService = {
   speak,
   speakVNDialogue,
   speakEpilogue,
@@ -504,3 +498,5 @@ export default {
   getTTSFallbackStats,
   getCurrentGeminiModelInfo,
 };
+
+export default hybridTTSService;

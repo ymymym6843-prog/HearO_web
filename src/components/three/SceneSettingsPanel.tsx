@@ -8,14 +8,14 @@
 
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import type {
   LightingPreset,
   CameraAngle,
   SceneHelpers,
   LightingSettings,
 } from '@/types/scene';
-import { CAMERA_PRESETS, LIGHTING_PRESETS } from '@/types/scene';
+// CAMERA_PRESETS, LIGHTING_PRESETS - 향후 프리셋 선택 UI에서 사용 예정
 import { ANIMATION_PRESETS, type AnimationPreset } from './VRMCharacter';
 
 interface SceneSettingsPanelProps {
@@ -55,7 +55,7 @@ function CollapsibleSection({
   defaultOpen = true,
 }: {
   title: string;
-  icon: string;
+  icon: IconName;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
@@ -68,7 +68,7 @@ function CollapsibleSection({
         className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/5 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Icon name={icon as any} size={16} className="text-white/60" />
+          <Icon name={icon} size={16} className="text-white/60" />
           <span className="text-sm font-medium text-white/80">{title}</span>
         </div>
         <Icon

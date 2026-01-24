@@ -6,7 +6,7 @@
 import { supabase } from '@/lib/supabase/client';
 import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('ExerciseResultService');
+const _logger = createLogger('ExerciseResultService');
 import type {
   ExerciseSession,
   ExerciseSessionInsert,

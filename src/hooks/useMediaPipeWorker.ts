@@ -157,6 +157,7 @@ export function useMediaPipeWorker(options: UseMediaPipeWorkerOptions = {}) {
         setIsReady(false);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]); // mergedConfig 제외 (무한 루프 방지)
 
   // 설정 업데이트
@@ -167,6 +168,7 @@ export function useMediaPipeWorker(options: UseMediaPipeWorkerOptions = {}) {
         payload: mergedConfig,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mergedConfig.enablePose, mergedConfig.enableHands, mergedConfig.smoothLandmarks, isReady]);
 
   /**

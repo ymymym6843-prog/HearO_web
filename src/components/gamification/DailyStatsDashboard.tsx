@@ -216,7 +216,6 @@ function LevelProgressBar({
   totalXP: number;
 }) {
   // XP 필요량 계산 (레벨당 1000 XP 증가)
-  const xpForCurrentLevel = level * 1000;
   const xpForNextLevel = (level + 1) * 1000;
   const xpNeeded = xpForNextLevel - totalXP;
 

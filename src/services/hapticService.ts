@@ -5,7 +5,7 @@
 
 import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('HapticService');
+const _logger = createLogger('HapticService');
 
 // 진동 패턴 타입
 type VibrationPattern = number | number[];

@@ -116,8 +116,8 @@ class ShareService {
   /**
    * 공유 URL 생성
    */
-  private generateShareUrl(result: ShareableResult): string {
-    // 실제 배포 URL로 변경 필요
+  private generateShareUrl(_result: ShareableResult): string {
+    // 실제 배포 URL로 변경 필요 (result 파라미터는 향후 개인화 URL 생성에 사용)
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://hearo.app';
     return `${baseUrl}?ref=share`;
   }
@@ -234,7 +234,7 @@ class ShareService {
     try {
       await navigator.clipboard.writeText(text);
       return { success: true };
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: new Error('클립보드 복사 실패') };
     }
   }
@@ -258,7 +258,7 @@ class ShareService {
       document.execCommand('copy');
       document.body.removeChild(textarea);
       return { success: true };
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: new Error('클립보드 복사 실패') };
     }
   }

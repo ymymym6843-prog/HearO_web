@@ -8,8 +8,8 @@
  * 천천히 회전하여 몰입감 증가
  */
 
-import React, { useRef, useEffect, useState, Suspense } from 'react';
-import { useThree, useLoader, useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo, Suspense } from 'react';
+import { useLoader, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface SkyboxBackgroundProps {
@@ -35,18 +35,22 @@ function SkyboxMesh({
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const targetRotationRef = useRef(0);
-  const { scene } = useThree();
 
   // 텍스처 로드
-  const texture = useLoader(THREE.TextureLoader, imageUrl);
+  const rawTexture = useLoader(THREE.TextureLoader, imageUrl);
 
-  useEffect(() => {
-    if (texture) {
-      // Equirectangular 매핑 설정
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      texture.colorSpace = THREE.SRGBColorSpace;
+  // 텍스처 설정을 메모이제이션 (원본 수정 대신 설정 적용된 텍스처 반환)
+  const texture = useMemo(() => {
+    if (rawTexture) {
+      // 텍스처 복제 후 설정 (원본 수정 방지)
+      const clonedTexture = rawTexture.clone();
+      clonedTexture.mapping = THREE.EquirectangularReflectionMapping;
+      clonedTexture.colorSpace = THREE.SRGBColorSpace;
+      clonedTexture.needsUpdate = true;
+      return clonedTexture;
     }
-  }, [texture, scene]);
+    return rawTexture;
+  }, [rawTexture]);
 
   // 스카이박스 부드러운 회전 애니메이션
   useFrame(() => {
@@ -91,23 +95,13 @@ export function SkyboxBackground({
   radius = 50,
   rotationSpeed = 0.0005,  // 기본: 천천히 회전 (운동 중 방해 안됨)
 }: SkyboxBackgroundProps) {
-  const [hasError, setHasError] = useState(false);
-
-  // 이미지 URL 변경 시 에러 상태 리셋
-  useEffect(() => {
-    setHasError(false);
-  }, [imageUrl]);
-
   if (!visible) return null;
 
-  // 에러 발생 시 fallback 표시
-  if (hasError) {
-    return <SkyboxFallback radius={radius} />;
-  }
-
+  // key를 사용하여 imageUrl 변경 시 컴포넌트 재마운트 (에러 상태 자동 리셋)
   return (
     <Suspense fallback={<SkyboxFallback radius={radius} />}>
       <SkyboxMesh
+        key={imageUrl}
         imageUrl={imageUrl}
         radius={radius}
         rotationSpeed={rotationSpeed}

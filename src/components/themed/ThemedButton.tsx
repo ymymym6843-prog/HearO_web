@@ -42,7 +42,7 @@ export const ThemedButton = forwardRef<HTMLButtonElement, ThemedButtonProps>(
     },
     ref
   ) => {
-    const { theme, worldviewId } = useTheme();
+    const { theme } = useTheme();
     const themeButtonClass = useButtonClass();
 
     // 크기별 스타일

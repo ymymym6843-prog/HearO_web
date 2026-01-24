@@ -109,6 +109,7 @@ export default function HandExercisePage() {
 
       lastRepCountRef.current = currentReps;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysis?.repCount, exerciseInfo.targetReps]);
 
   // 운동 완료 처리
@@ -334,23 +335,28 @@ export default function HandExercisePage() {
 
     initialize();
 
+    // cleanup에서 사용할 ref 값 캡처
+    const videoElement = videoRef.current;
+    const animationFrame = animationFrameRef.current;
+    const handLandmarker = handLandmarkerRef.current;
+
     return () => {
       mounted = false;
 
       // 애니메이션 정리
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
       }
 
       // 카메라 정리
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      if (videoElement?.srcObject) {
+        const tracks = (videoElement.srcObject as MediaStream).getTracks();
         tracks.forEach((track) => track.stop());
       }
 
       // Hand Landmarker 정리
-      if (handLandmarkerRef.current) {
-        handLandmarkerRef.current.close();
+      if (handLandmarker) {
+        handLandmarker.close();
         handLandmarkerRef.current = null;
       }
 

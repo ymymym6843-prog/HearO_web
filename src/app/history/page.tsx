@@ -66,6 +66,7 @@ export default function HistoryPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // 필터링된 세션

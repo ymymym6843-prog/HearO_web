@@ -9,7 +9,7 @@
  * - 색상 그라데이션
  */
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import type { VASLevel } from '@/services/medical';
 

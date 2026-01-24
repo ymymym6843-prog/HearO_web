@@ -16,9 +16,7 @@ import { createLogger } from '@/lib/logger';
 const logger = createLogger('AchievementsPage');
 import {
   achievementService,
-  ACHIEVEMENTS,
   TIER_COLORS,
-  type Achievement,
   type AchievementCategory,
 } from '@/services/achievementService';
 import { AchievementCard } from '@/components/achievements/AchievementCard';
@@ -46,9 +44,10 @@ export default function AchievementsPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // 통계 로드 및 업적 체크
+  // 통계 로드 및 업적 체크 - user.id 변경 시에만 실행
   useEffect(() => {
     loadStatsAndCheckAchievements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   async function loadStatsAndCheckAchievements() {

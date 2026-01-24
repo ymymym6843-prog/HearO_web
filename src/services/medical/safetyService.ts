@@ -12,8 +12,8 @@
  */
 
 import { createLogger } from '@/lib/logger';
-import type { ROMMeasurement, RehabPhase } from './romService';
-import { romService, AAOS_ROM_STANDARDS } from './romService';
+import type { ROMMeasurement } from './romService';
+import { romService } from './romService';
 
 const logger = createLogger('SafetyService');
 

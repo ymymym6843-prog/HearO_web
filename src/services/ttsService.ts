@@ -6,7 +6,7 @@
 import { createLogger } from '@/lib/logger';
 import type { WorldviewType } from '@/types/vrm';
 
-const logger = createLogger('TTSService');
+const _logger = createLogger('TTSService');
 import type { ExerciseType, PerformanceRating } from '@/types/exercise';
 
 // TTS 상태

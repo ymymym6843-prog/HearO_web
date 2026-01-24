@@ -68,7 +68,7 @@ function FBXHandModel({
   mirror: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const modelRef = useRef<THREE.Group | null>(null);
+  const [model, setModel] = useState<THREE.Group | null>(null);
   const bonesRef = useRef<Map<string, THREE.Bone>>(new Map());
   const initRotsRef = useRef<Map<string, THREE.Euler>>(new Map());
   const [loaded, setLoaded] = useState(false);
@@ -111,7 +111,7 @@ function FBXHandModel({
 
         bonesRef.current = bones;
         initRotsRef.current = initRots;
-        modelRef.current = fbx;
+        setModel(fbx);
         setLoaded(true);
       },
       (progress) => {
@@ -130,7 +130,7 @@ function FBXHandModel({
 
   // 매 프레임 업데이트
   useFrame(() => {
-    if (!loaded || !modelRef.current || !landmarks || landmarks.length < 21) {
+    if (!loaded || !model || !landmarks || landmarks.length < 21) {
       return;
     }
 
@@ -269,13 +269,15 @@ function FBXHandModel({
     );
   }
 
-  if (!loaded || !modelRef.current) {
+  // loaded가 true면 model이 설정되어 있음을 보장
+  // (로딩 콜백에서 setModel 후 setLoaded 호출)
+  if (!loaded || !model) {
     return <Loader />;
   }
 
   return (
     <group ref={groupRef}>
-      <primitive object={modelRef.current} />
+      <primitive object={model} />
     </group>
   );
 }
@@ -297,6 +299,7 @@ export function Hand3DView({
     if (landmarks) {
       console.log('[Hand3DView] 랜드마크 수신:', landmarks.length, '개');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [landmarks?.length]);
 
   return (

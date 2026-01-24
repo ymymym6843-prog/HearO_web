@@ -7,11 +7,11 @@
  * Phase 전환 시 퇴장 애니메이션 지원
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { WorldviewType } from '@/types/vrm';
-import { getMainNPC, getNPCImagePath, type NPCEmotion } from '@/constants/npcCharacters';
+import { getMainNPC, getNPCImagePath, NPC_CHARACTERS, type NPCEmotion } from '@/constants/npcCharacters';
 import { usePhaseStore } from '@/stores/usePhaseStore';
 
 // 레이아웃 모드 타입
@@ -109,7 +109,7 @@ export function NPCLayer({
 
   // NPC 정보 가져오기
   const npc = npcId
-    ? (require('@/constants/npcCharacters').NPC_CHARACTERS[worldview]?.[npcId] || getMainNPC(worldview))
+    ? (NPC_CHARACTERS[worldview]?.[npcId] || getMainNPC(worldview))
     : getMainNPC(worldview);
 
   const imagePath = getNPCImagePath(worldview, npc.id, emotion);

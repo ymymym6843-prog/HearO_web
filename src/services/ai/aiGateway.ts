@@ -14,7 +14,6 @@ import type {
   EpilogueContext,
   PrologueContext,
   CoachingContext,
-  GenerateStoryResult,
 } from '@/types/story';
 import {
   WORLDVIEW_MENTORS,
@@ -25,7 +24,6 @@ import {
 import {
   getEpilogueStory,
   getTTSAudioUrl,
-  scoreToGrade,
 } from '@/services/prerenderedContentService';
 
 // ============================================================
@@ -81,7 +79,7 @@ export async function generateEpilogue(
     earnedExp = 0,
     isSpecialEvent = false,
     forceAI = false,
-    streakDays = 0,
+    streakDays: _streakDays = 0,
   } = context;
 
   // 1. 특별 이벤트가 아니면 프리렌더링 콘텐츠 우선 사용
@@ -196,12 +194,11 @@ export function generateCoaching(context: CoachingContext): GenerationResult {
     exerciseId,
     currentReps,
     targetReps,
-    accuracy,
   } = context;
 
   const remaining = targetReps - currentReps;
   const progress = Math.round((currentReps / targetReps) * 100);
-  const exerciseName = context.exerciseName || getExerciseNameKr(exerciseId);
+  const _exerciseName = context.exerciseName || getExerciseNameKr(exerciseId);
 
   // 진행률에 따른 메시지
   let message = '';
@@ -263,7 +260,7 @@ function generateTemplateEpilogue(params: {
     heroLevel,
     exerciseId,
     reps,
-    targetReps,
+    targetReps: _targetReps,
     accuracy,
     grade,
     leveledUp,
@@ -271,10 +268,10 @@ function generateTemplateEpilogue(params: {
     earnedExp,
   } = params;
 
-  const mentor = WORLDVIEW_MENTORS[worldviewId];
+  const _mentor = WORLDVIEW_MENTORS[worldviewId];
   const heroTitle = getHeroTitle(worldviewId, heroLevel);
   const exerciseName = getExerciseNameKr(exerciseId);
-  const gradeKr = getGradeNameKr(grade);
+  const _gradeKr = getGradeNameKr(grade);
 
   // 등급별 기본 메시지
   const gradeMessages: Record<PerformanceRating, string> = {
@@ -418,7 +415,7 @@ export async function tryTemplateFirst(
 // Export
 // ============================================================
 
-export default {
+const aiGateway = {
   generateEpilogue,
   generatePrologue,
   generateCoaching,
@@ -426,3 +423,5 @@ export default {
   isSpecialEvent,
   hasPrerenderedEpilogue,
 };
+
+export default aiGateway;

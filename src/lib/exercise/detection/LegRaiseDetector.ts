@@ -274,7 +274,7 @@ export class LegRaiseDetector extends BaseDetector {
 }
 
 // 팩토리 함수들
-let legRaiseDetectors: Map<ExerciseType, LegRaiseDetector> = new Map();
+const legRaiseDetectors: Map<ExerciseType, LegRaiseDetector> = new Map();
 
 export function getLegRaiseDetector(exerciseType: ExerciseType = 'straight_leg_raise'): LegRaiseDetector {
   if (!legRaiseDetectors.has(exerciseType)) {

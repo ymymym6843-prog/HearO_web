@@ -107,10 +107,9 @@ export function ROMGauge({
   className = '',
 }: ROMGaugeProps) {
   // 계산된 값들
-  const { percentage, isWithinTarget, isOverTarget, gaugeData, colors } = useMemo(() => {
+  const { isWithinTarget, isOverTarget, gaugeData, colors } = useMemo(() => {
     const maxAngle = Math.max(targetAngle, normalRange.max);
     const pct = Math.min(100, (currentAngle / maxAngle) * 100);
-    const targetPct = (targetAngle / maxAngle) * 100;
 
     const withinTarget = currentAngle >= targetAngle * 0.9 && currentAngle <= targetAngle * 1.1;
     const overTarget = currentAngle > targetAngle * 1.1;

@@ -6,7 +6,7 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('PainTrackingService');
+const _logger = createLogger('PainTrackingService');
 import type { PainRecord, BodyPart, PainLevel } from '@/components/pain/PainTracker';
 
 // 로컬 스토리지 키

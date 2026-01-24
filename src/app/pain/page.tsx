@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useAuthStore } from '@/stores/useAuthStore';
 import {
@@ -48,9 +48,10 @@ export default function PainTrackingPage() {
   const [showRecorder, setShowRecorder] = useState(false);
   const [selectedPart, setSelectedPart] = useState<BodyPart | null>(null);
 
-  // 데이터 로드
+  // 데이터 로드 - user.id 변경 시에만 실행
   useEffect(() => {
     loadPainData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   async function loadPainData() {

@@ -210,8 +210,8 @@ export class HandModel {
     const wrist = landmarks[HandLandmarkIndex.WRIST];
     const middleMcp = landmarks[HandLandmarkIndex.MIDDLE_MCP];
 
-    // 손 전체 방향 계산
-    const handDirection = new THREE.Vector3(
+    // 손 전체 방향 계산 (향후 손 회전 애니메이션에 사용 예정)
+    const _handDirection = new THREE.Vector3(
       middleMcp.x - wrist.x,
       -(middleMcp.y - wrist.y), // Y축 반전
       middleMcp.z - wrist.z

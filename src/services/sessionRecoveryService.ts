@@ -6,7 +6,7 @@
 import { createLogger } from '@/lib/logger';
 import type { ExerciseType } from '@/types/exercise';
 
-const logger = createLogger('SessionRecoveryService');
+const _logger = createLogger('SessionRecoveryService');
 import type { WorldviewType } from '@/types/vrm';
 
 // 저장되는 세션 상태

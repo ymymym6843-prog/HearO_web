@@ -9,7 +9,7 @@
  * 4. 손가락 추적 지원
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Kalidokit from 'kalidokit';
 import { VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
 import { Euler, Quaternion } from 'three';

@@ -7,7 +7,7 @@
  * MediaPipe 연동은 외부에서 처리
  */
 
-import React, { Suspense, useRef, useEffect, useState } from 'react';
+import React, { Suspense, useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { VRMCharacter, type AnimationPreset } from '@/components/three/VRMCharacter';
@@ -71,31 +71,24 @@ export function VRMScene({
   // 조명 설정 (기본값 또는 커스텀)
   const lighting = lightingSettings || LIGHTING_PRESETS.default;
   const groupRef = useRef<THREE.Group>(null);
-  const [opacity, setOpacity] = useState(0);
   const { camera } = useThree();
 
   // VRM이 한 번이라도 visible 되었는지 추적 (한 번 true가 되면 계속 마운트 유지)
-  const hasBeenVisibleRef = useRef(false);
-  const [shouldMount, setShouldMount] = useState(false);
+  // useState의 lazy initializer로 초기 visible 상태 캡처
+  const [shouldMount, setShouldMount] = useState(() => visible);
 
-  // visible이 처음 true가 되면 마운트 활성화 (이후 계속 유지)
+  // visible이 true가 되면 마운트 활성화 (이후 계속 유지, false로 되돌리지 않음)
+  // VRM 모델 재로딩 방지를 위한 필수 latching 패턴
   useEffect(() => {
-    if (visible && !hasBeenVisibleRef.current) {
-      hasBeenVisibleRef.current = true;
+    if (visible && !shouldMount) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShouldMount(true);
       console.log('[VRMScene] VRM mount activated (first visible)');
     }
-  }, [visible]);
+  }, [visible, shouldMount]);
 
-  // 전환 애니메이션: 포탈 효과
-  useEffect(() => {
-    if (visible) {
-      // 등장 애니메이션
-      setOpacity(transitionProgress);
-    } else {
-      setOpacity(0);
-    }
-  }, [visible, transitionProgress]);
+  // 전환 애니메이션: 포탈 효과 - props에서 직접 계산 (향후 material opacity에 사용 예정)
+  const _opacity = visible ? transitionProgress : 0;
 
   // 스케일 및 위치 애니메이션 (VRM 등장/퇴장)
   useFrame(() => {
@@ -236,23 +229,28 @@ function PortalEffect({ progress }: { progress: number }) {
   );
 }
 
-/**
- * 포탈 파티클 (간소화된 버전)
- */
-function PortalParticles({ progress }: { progress: number }) {
-  const particlesRef = useRef<THREE.Points>(null);
-
-  const particleCount = 50;
-  const positions = new Float32Array(particleCount * 3);
-
-  // 원형으로 파티클 배치
-  for (let i = 0; i < particleCount; i++) {
-    const angle = (i / particleCount) * Math.PI * 2;
+// 파티클 위치 생성 함수 (컴포넌트 외부)
+function createParticlePositions(count: number): Float32Array {
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
     const radius = 0.8 + Math.random() * 0.4;
     positions[i * 3] = Math.cos(angle) * radius;
     positions[i * 3 + 1] = Math.sin(angle) * radius;
     positions[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
   }
+  return positions;
+}
+
+/**
+ * 포탈 파티클 (간소화된 버전)
+ */
+function PortalParticles({ progress }: { progress: number }) {
+  const particlesRef = useRef<THREE.Points>(null);
+  const particleCount = 50;
+
+  // 파티클 위치를 한 번만 생성 (useState lazy init)
+  const [positions] = useState<Float32Array>(() => createParticlePositions(particleCount));
 
   useFrame(({ clock }) => {
     if (particlesRef.current) {

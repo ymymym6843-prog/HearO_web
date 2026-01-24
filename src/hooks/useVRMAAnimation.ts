@@ -103,7 +103,8 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
   }, [isSupported]);
 
   // 애니메이션 종료 이벤트 핸들러 (initialize보다 먼저 정의)
-  const handleAnimationFinished = useCallback((event: any) => {
+  // THREE.AnimationMixer 'finished' 이벤트 타입
+  const handleAnimationFinished = useCallback((event: { action: THREE.AnimationAction; direction: number }) => {
     const finishedAction = event.action as THREE.AnimationAction;
     const clip = finishedAction.getClip();
     const elapsed = (Date.now() - animationStartTimeRef.current) / 1000;
@@ -364,7 +365,9 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
 
     // VRM을 바인드 포즈로 리셋
     if (vrmRef.current?.humanoid) {
-      (vrmRef.current.humanoid as any).resetNormalizedPose?.();
+      // VRM 1.0 humanoid의 resetNormalizedPose 메서드 (타입 정의에 없을 수 있음)
+      const humanoid = vrmRef.current.humanoid as { resetNormalizedPose?: () => void };
+      humanoid.resetNormalizedPose?.();
     }
 
     setIsPlaying(false);

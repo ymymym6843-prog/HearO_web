@@ -96,16 +96,6 @@ export function PainTracker({
     setStep('level');
   }, []);
 
-  const handleLevelSelect = useCallback((level: PainLevel) => {
-    setPainLevel(level);
-    if (level === 0) {
-      // 통증 없음이면 바로 제출
-      handleSubmit(level);
-    } else {
-      setStep('type');
-    }
-  }, []);
-
   const handleSubmit = useCallback((overrideLevel?: PainLevel) => {
     if (!selectedPart) return;
 
@@ -121,6 +111,16 @@ export function PainTracker({
 
     onSubmit(record);
   }, [selectedPart, painLevel, painType, timing, notes, sessionId, onSubmit]);
+
+  const handleLevelSelect = useCallback((level: PainLevel) => {
+    setPainLevel(level);
+    if (level === 0) {
+      // 통증 없음이면 바로 제출
+      handleSubmit(level);
+    } else {
+      setStep('type');
+    }
+  }, [handleSubmit]);
 
   const timingLabels = {
     before: '운동 전',

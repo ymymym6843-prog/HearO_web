@@ -13,6 +13,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import type { OrbitControls as OrbitControlsType } from 'three-stdlib';
 import { VRMCharacter } from './VRMCharacter';
 import { MediaErrorBoundary } from '@/components/common/ErrorBoundary';
 import type { ExpressionState } from '@/services/vrmFeedbackService';
@@ -70,7 +71,8 @@ function CameraController({
   enableControls: boolean;
 }) {
   const { camera } = useThree();
-  const controlsRef = useRef<any>(null);
+  // OrbitControls ref - drei의 OrbitControls는 three-stdlib의 OrbitControls를 반환
+  const controlsRef = useRef<OrbitControlsType | null>(null);
 
   // 카메라 앵글 변경 시 위치 업데이트
   useEffect(() => {

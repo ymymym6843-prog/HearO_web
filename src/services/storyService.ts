@@ -6,7 +6,7 @@
 import { createLogger } from '@/lib/logger';
 import type { WorldviewType } from '@/types/vrm';
 
-const logger = createLogger('StoryService');
+const _logger = createLogger('StoryService');
 import type { ExerciseType, PerformanceRating } from '@/types/exercise';
 
 // 스토리 데이터 구조

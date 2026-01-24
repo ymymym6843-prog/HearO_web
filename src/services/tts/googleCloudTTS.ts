@@ -17,9 +17,6 @@ import {
   recordGoogleCloudSuccess,
   recordGoogleCloudFailure,
   isGoogleCloudAvailable,
-  startGoogleCloudRecoveryAttempt,
-  shouldAttemptGoogleCloudRecovery,
-  type TTSErrorType,
 } from './fallbackManager';
 
 const log = createLogger('GoogleCloudTTS');
@@ -351,7 +348,7 @@ export function clearGoogleCloudTTSCache(): void {
 // Export
 // ============================================================
 
-export default {
+const googleCloudTTSService = {
   generateGoogleCloudTTS,
   playGoogleCloudTTS,
   playWorldviewGoogleCloudTTS,
@@ -360,3 +357,5 @@ export default {
   clearGoogleCloudTTSCache,
   KOREAN_VOICE_NAMES,
 };
+
+export default googleCloudTTSService;

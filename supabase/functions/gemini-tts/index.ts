@@ -62,8 +62,8 @@ const TTS_MODELS = {
 /** 한국어 기본 음성 (세계관별 음성 미지정 시) */
 const DEFAULT_VOICE = 'Kore';
 
-/** 세계관별 음성 매핑 (HearO-v2와 동일) */
-const WORLDVIEW_VOICES: Record<string, string> = {
+/** 세계관별 음성 매핑 (HearO-v2와 동일) - 향후 음성 분기에 사용 예정 */
+const _WORLDVIEW_VOICES: Record<string, string> = {
   fantasy: 'Zubenelgenubi',   // 현자 엘더린 (중후한 남성)
   sports: 'Algieba',          // 코치 박 (활기찬 남성)
   idol: 'Achernar',           // 매니저 수진 (밝은 여성)

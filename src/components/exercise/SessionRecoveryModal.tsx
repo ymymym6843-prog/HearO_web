@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   sessionRecoveryService,
@@ -20,21 +20,27 @@ interface SessionRecoveryModalProps {
   onDismiss: () => void;
 }
 
+// 클라이언트에서만 실행되는 초기 세션 체크
+function getInitialSession(): { session: RecoverableSession | null; isVisible: boolean } {
+  if (typeof window === 'undefined') {
+    return { session: null, isVisible: false };
+  }
+  const recoverable = sessionRecoveryService.checkRecoverableSession();
+  if (recoverable && recoverable.canRecover) {
+    return { session: recoverable, isVisible: true };
+  }
+  return { session: null, isVisible: false };
+}
+
 export function SessionRecoveryModal({
   onRecover,
   onDiscard,
   onDismiss,
 }: SessionRecoveryModalProps) {
-  const [session, setSession] = useState<RecoverableSession | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const recoverable = sessionRecoveryService.checkRecoverableSession();
-    if (recoverable && recoverable.canRecover) {
-      setSession(recoverable);
-      setIsVisible(true);
-    }
-  }, []);
+  // Lazy initialization으로 cascading render 방지
+  const [initialState] = useState(getInitialSession);
+  const session = initialState.session;
+  const [isVisible, setIsVisible] = useState(initialState.isVisible);
 
   const handleRecover = () => {
     if (session) {

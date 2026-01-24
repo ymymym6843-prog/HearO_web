@@ -12,12 +12,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  WorldviewId,
   WORLDVIEWS,
-  getRandomPanoramaBg,
-  getPanoramaBgByIndex,
-  getSeededRandomPanoramaBg,
   PANORAMA_BG_COUNT,
+  type WorldviewId,
 } from '@/constants/worldviews';
 
 // ============================================
@@ -171,6 +168,7 @@ export function useBackground({
 
   // 세계관 변경 시 인덱스 재설정
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentIndex(getInitialIndex());
     if (persistPreference) {
       const preferences = getStoragePreferences();

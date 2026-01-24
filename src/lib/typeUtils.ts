@@ -19,11 +19,11 @@ type CamelCaseKeys<T> = {
     : T[K];
 };
 
-// camelCase를 snake_case로 변환하는 타입
-type CamelToSnakeCase<S extends string> = S extends `${infer T}${infer U}`
+// camelCase를 snake_case로 변환하는 타입 (향후 사용 예정)
+type _CamelToSnakeCase<S extends string> = S extends `${infer T}${infer U}`
   ? T extends Uppercase<T>
-    ? `_${Lowercase<T>}${CamelToSnakeCase<U>}`
-    : `${T}${CamelToSnakeCase<U>}`
+    ? `_${Lowercase<T>}${_CamelToSnakeCase<U>}`
+    : `${T}${_CamelToSnakeCase<U>}`
   : S;
 
 /**

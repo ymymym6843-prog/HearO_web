@@ -123,6 +123,7 @@ export function CalibrationGuide({
         }, 2000);
       }
     }, 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 측정 중 각도 수집
@@ -179,7 +180,6 @@ export function CalibrationGuide({
 
   // 현재 진행 단계 번호 (게이미피케이션용)
   const stepNumber = step === 'intro' ? 1 : step === 'start_position' ? 2 : step === 'end_position' ? 3 : step === 'confirm' ? 4 : 5;
-  const totalSteps = 4;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">

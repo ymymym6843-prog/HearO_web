@@ -6,7 +6,7 @@
 import { createLogger } from '@/lib/logger';
 import type { IconName } from '@/components/ui/Icon';
 
-const logger = createLogger('AchievementService');
+const _logger = createLogger('AchievementService');
 
 // 업적 카테고리
 export type AchievementCategory = 'streak' | 'reps' | 'accuracy' | 'duration' | 'milestone';

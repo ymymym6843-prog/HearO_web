@@ -9,10 +9,32 @@
  * - 페이드 인/아웃
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { WorldviewType } from '@/types/vrm';
 import { WORLDVIEWS } from '@/constants/worldviews';
+
+// 파티클 데이터 타입
+interface ParticleData {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  delay: number;
+  duration: number;
+}
+
+// 파티클 초기 데이터 생성 함수 (컴포넌트 외부에서 한 번만 호출)
+function createParticles(): ParticleData[] {
+  return Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: 2 + Math.random() * 4,
+    delay: Math.random() * 0.5,
+    duration: 1 + Math.random() * 1,
+  }));
+}
 
 interface TransitionOverlayProps {
   /** 전환 진행률 (0-1) */
@@ -126,16 +148,8 @@ export function TransitionOverlay({ progress, worldview }: TransitionOverlayProp
  * 파티클 효과 컴포넌트
  */
 function ParticleEffect({ progress, color }: { progress: number; color: string }) {
-  const particles = useMemo(() => {
-    return Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: 2 + Math.random() * 4,
-      delay: Math.random() * 0.5,
-      duration: 1 + Math.random() * 1,
-    }));
-  }, []);
+  // useState lazy initialization으로 초기 렌더링 시 한 번만 생성
+  const [particles] = useState<ParticleData[]>(createParticles);
 
   return (
     <div className="absolute inset-0 overflow-hidden">

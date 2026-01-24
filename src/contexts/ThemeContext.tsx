@@ -24,7 +24,6 @@ import type { WorldviewTheme, ThemeContextValue } from '@/types/theme';
 import {
   WORLDVIEW_THEMES,
   generateCSSVariables,
-  FONT_LOAD_URLS,
 } from '@/constants/themes';
 
 // ============================================
@@ -56,7 +55,7 @@ export function ThemeProvider({
 }: ThemeProviderProps) {
   const [worldviewId, setWorldviewId] = useState<WorldviewId>(initialWorldview);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [_fontsLoaded, setFontsLoaded] = useState(false);
 
   // 현재 테마
   const theme = useMemo<WorldviewTheme>(() => {

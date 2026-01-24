@@ -9,7 +9,6 @@
  */
 
 import { createLogger } from '@/lib/logger';
-import { calibrationService, DEFAULT_ROM_RANGES } from '@/services/calibrationService';
 import type { CalibrationJoint } from '@/components/calibration/CalibrationGuide';
 
 const logger = createLogger('ROMService');

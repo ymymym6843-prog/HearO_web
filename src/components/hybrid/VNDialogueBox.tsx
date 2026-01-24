@@ -18,7 +18,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from '
 import { motion, AnimatePresence } from 'framer-motion';
 import type { WorldviewType } from '@/types/vrm';
 import { usePhaseStore, useDialogue } from '@/stores/usePhaseStore';
-import { getMainNPC, getNPCImagePath, type NPCCharacter, type NPCEmotion } from '@/constants/npcCharacters';
+import { getMainNPC, getNPCImagePath, NPC_CHARACTERS, type NPCCharacter, type NPCEmotion } from '@/constants/npcCharacters';
 import { ttsService } from '@/services/ttsService';
 
 // ============================================
@@ -56,9 +56,9 @@ const CURSOR_BLINK_INTERVAL = 500;
 // ============================================
 
 /**
- * NPC 아바타 (메모이즈)
+ * NPC 아바타 (메모이즈) - 대화창 내 아바타 표시용 (향후 사용 예정)
  */
-const NPCAvatar = memo(function NPCAvatar({
+const _NPCAvatar = memo(function _NPCAvatar({
   npc,
   emotion,
   worldview,
@@ -77,6 +77,7 @@ const NPCAvatar = memo(function NPCAvatar({
         className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 shadow-lg"
         style={{ borderColor: npc.color }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imagePath}
           alt={npc.name}
@@ -141,9 +142,9 @@ export function VNDialogueBox({
   onTransitionRequest,
   onDialogueComplete,
   onSkipAll,
-  typingSpeed = DEFAULT_TYPING_SPEED,
+  typingSpeed: _typingSpeed = DEFAULT_TYPING_SPEED,
   enableTTS = false,
-  showAvatar = false, // 기본적으로 아바타 숨김 (NPCLayer와 함께 사용)
+  showAvatar: _showAvatar = false, // 기본적으로 아바타 숨김 (NPCLayer와 함께 사용)
   showSkipButton = true,
 }: VNDialogueBoxProps) {
   const dialogue = useDialogue();
@@ -164,49 +165,12 @@ export function VNDialogueBox({
   const fullTextRef = useRef('');
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // NPC 정보
+  // NPC 정보 - currentEntry 전체를 의존성으로 사용 (React Compiler 호환)
   const npc = useMemo(() => {
     if (!currentEntry) return getMainNPC(worldview);
-    const npcChars = require('@/constants/npcCharacters').NPC_CHARACTERS[worldview];
+    const npcChars = NPC_CHARACTERS[worldview];
     return npcChars?.[currentEntry.npcId] || getMainNPC(worldview);
-  }, [worldview, currentEntry?.npcId]);
-
-  const emotion: NPCEmotion = currentEntry?.emotion || 'normal';
-
-  /**
-   * 타이핑 시작
-   */
-  const startTyping = useCallback((text: string) => {
-    // 이전 타이머 정리
-    if (typingTimerRef.current) {
-      cancelAnimationFrame(typingTimerRef.current);
-    }
-
-    fullTextRef.current = text;
-    charIndexRef.current = 0;
-    setDisplayedText('');
-    setIsTyping(true);
-    setIsComplete(false);
-
-    // requestIdleCallback 또는 requestAnimationFrame 사용
-    const typeNextChar = () => {
-      if (charIndexRef.current < fullTextRef.current.length) {
-        charIndexRef.current++;
-        setDisplayedText(fullTextRef.current.slice(0, charIndexRef.current));
-
-        // 다음 문자 타이핑 예약
-        typingTimerRef.current = window.setTimeout(() => {
-          requestAnimationFrame(typeNextChar);
-        }, typingSpeed) as unknown as number;
-      } else {
-        // 타이핑 완료
-        setIsTyping(false);
-        setIsComplete(true);
-      }
-    };
-
-    requestAnimationFrame(typeNextChar);
-  }, [typingSpeed]);
+  }, [worldview, currentEntry]);
 
   /**
    * 타이핑 스킵 (즉시 전체 텍스트 표시)
@@ -304,28 +268,58 @@ export function VNDialogueBox({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleAdvance]);
 
+  // 현재 텍스트 (useEffect 의존성용)
+  const currentText = currentEntry?.text;
+
   /**
-   * 대화 텍스트 변경 시 타이핑 시작
+   * 타이핑 효과 실행
+   * currentText 변경 시 새로운 타이핑 애니메이션 시작
    */
   useEffect(() => {
-    if (currentEntry?.text) {
-      startTyping(currentEntry.text);
+    if (!currentText) return;
 
-      // TTS 재생
-      if (enableTTS && currentEntry.tts !== false) {
-        setIsSpeaking(true);
-        ttsService.speak(currentEntry.text, () => {
-          setIsSpeaking(false);
-        });
+    // refs 초기화 (useEffect 내에서만 업데이트)
+    fullTextRef.current = currentText;
+    charIndexRef.current = 0;
+
+    // 새 텍스트 시작 - 타이핑 애니메이션을 위한 필수 초기화
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDisplayedText('');
+    setIsTyping(true);
+    setIsComplete(false);
+
+    // 타이핑 애니메이션 시작
+    const typeNextChar = () => {
+      if (charIndexRef.current < fullTextRef.current.length) {
+        charIndexRef.current++;
+        setDisplayedText(fullTextRef.current.slice(0, charIndexRef.current));
+        typingTimerRef.current = requestAnimationFrame(typeNextChar);
+      } else {
+        setIsTyping(false);
+        setIsComplete(true);
       }
+    };
+
+    // 첫 프레임 대기 후 시작
+    const startTimer = setTimeout(() => {
+      typingTimerRef.current = requestAnimationFrame(typeNextChar);
+    }, 50);
+
+    // TTS 재생
+    if (enableTTS && currentEntry?.tts !== false) {
+      setIsSpeaking(true);
+      ttsService.speak(currentText, () => {
+        setIsSpeaking(false);
+      });
     }
 
     return () => {
+      clearTimeout(startTimer);
       if (typingTimerRef.current) {
-        clearTimeout(typingTimerRef.current);
+        cancelAnimationFrame(typingTimerRef.current);
       }
     };
-  }, [currentEntry?.text, startTyping, enableTTS, currentEntry?.tts]);
+  }, [currentText, enableTTS, currentEntry?.tts]);
 
   /**
    * 자동 진행

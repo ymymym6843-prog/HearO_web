@@ -13,7 +13,7 @@
 import type { Landmark } from '@/types/pose';
 import { PoseLandmark } from '@/types/pose';
 import type { ExerciseType } from '@/types/exercise';
-import { BaseDetector, type ExercisePhase } from './BaseDetector';
+import { BaseDetector } from './BaseDetector';
 import { calculateJointAngle, type JointIndices } from './utils';
 
 // 운동별 기본 설정
@@ -248,7 +248,7 @@ export class HoldDetector extends BaseDetector {
   /**
    * 홀드 피드백 생성
    */
-  private generateHoldFeedback(angle: number, inPosition: boolean): string {
+  private generateHoldFeedback(_angle: number, _inPosition: boolean): string {
     const timeLeft = Math.max(0, this.config.holdDuration - this.currentHoldDuration);
     const timeLeftFormatted = timeLeft.toFixed(1);
 
@@ -296,7 +296,7 @@ export class HoldDetector extends BaseDetector {
     return !this.isInTargetRange(angle);
   }
 
-  protected calculateProgress(angle: number): number {
+  protected calculateProgress(_angle: number): number {
     return this.currentHoldDuration / this.config.holdDuration;
   }
 
@@ -319,7 +319,7 @@ export class HoldDetector extends BaseDetector {
 }
 
 // 팩토리 함수들
-let holdDetectors: Map<ExerciseType, HoldDetector> = new Map();
+const holdDetectors: Map<ExerciseType, HoldDetector> = new Map();
 
 export function getHoldDetector(exerciseType: ExerciseType = 'wall_squat'): HoldDetector {
   if (!holdDetectors.has(exerciseType)) {

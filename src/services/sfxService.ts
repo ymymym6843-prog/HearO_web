@@ -6,7 +6,7 @@
 import { createLogger } from '@/lib/logger';
 import type { WorldviewType } from '@/types/vrm';
 
-const logger = createLogger('SFXService');
+const _logger = createLogger('SFXService');
 
 // Safari 호환을 위한 webkitAudioContext 타입 선언
 declare global {

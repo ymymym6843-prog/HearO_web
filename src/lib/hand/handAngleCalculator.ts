@@ -461,7 +461,7 @@ export function calculatePalmOrientation(landmarks: HandLandmarkPoint[]): PalmOr
   const wrist = landmarks[HandLandmark.WRIST];
   const indexMcp = landmarks[HandLandmark.INDEX_FINGER_MCP];
   const pinkyMcp = landmarks[HandLandmark.PINKY_MCP];
-  const middleMcp = landmarks[HandLandmark.MIDDLE_FINGER_MCP];
+  const _middleMcp = landmarks[HandLandmark.MIDDLE_FINGER_MCP];
 
   // 손바닥 평면을 정의하는 두 벡터
   const v1 = getVector(wrist, indexMcp);  // 손목 → 검지 MCP

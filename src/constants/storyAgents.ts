@@ -5,7 +5,6 @@
 
 import type {
   WorldViewInfo,
-  StoryAgentConfig,
   MentorNpcInfo,
   StoryAgentTheme,
   TTSVoiceConfig,

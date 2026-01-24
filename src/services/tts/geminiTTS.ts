@@ -386,7 +386,7 @@ export function clearGeminiTTSCache(): void {
 // Export
 // ============================================================
 
-export default {
+const geminiTTSService = {
   generateGeminiTTS,
   playGeminiTTS,
   playWorldviewTTS,
@@ -396,3 +396,5 @@ export default {
   getGeminiTTSCacheStats,
   clearGeminiTTSCache,
 };
+
+export default geminiTTSService;

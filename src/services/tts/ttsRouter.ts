@@ -86,7 +86,7 @@ let config: TTSRouterConfig = {
   geminiDailyLimitChars: 10000, // 일일 10K chars 제한
 };
 
-let state: TTSRouterState = {
+const state: TTSRouterState = {
   geminiUsageToday: 0,
   lastResetDate: new Date().toISOString().split('T')[0],
 };
@@ -256,7 +256,7 @@ export function getRouterStats(): TTSRouterStats {
 // Export
 // ============================================================
 
-export default {
+const ttsRouter = {
   selectTTSProvider,
   recordGeminiUsage,
   updateRouterConfig,
@@ -267,3 +267,5 @@ export default {
   isImmersiveContext,
   getRemainingGeminiQuota,
 };
+
+export default ttsRouter;

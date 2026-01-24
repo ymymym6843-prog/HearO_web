@@ -124,7 +124,6 @@ export function CalibrationOverlay({
   currentLandmarks,
 }: CalibrationOverlayProps) {
   const {
-    calibrationProgress,
     startCalibration,
     updateCalibrationProgress,
     completeCalibration,
