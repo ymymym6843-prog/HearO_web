@@ -98,6 +98,15 @@ export function VRMCharacter({
   const [initialAnimationPhase, setInitialAnimationPhase] = useState<'pending' | 'initial' | 'idle' | 'complete'>('pending');
   const initialAnimationStartedRef = useRef(false);
 
+  // 프리셋 애니메이션 재생 중 플래그 (animationUrl prop과 구분)
+  const isPlayingPresetRef = useRef(false);
+
+  // 애니메이션 시작 직후 플래그 (async state 동기화 대기용)
+  const animationJustStartedRef = useRef(false);
+
+  // 애니메이션 버전 카운터 (프리셋 빠른 변경 시 stale animation 무시용)
+  const animationVersionRef = useRef(0);
+
   // VRM을 state로 관리하여 변경 시 리렌더링 트리거
   const [loadedVRM, setLoadedVRM] = useState<VRM | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -113,7 +122,7 @@ export function VRMCharacter({
 
   // Utonics 스타일 Kalidokit 훅 사용
   // VRM이 로드된 후에만 활성화 (VRMA 애니메이션 재생 중에는 비활성화)
-  const { isActive, frameCount, syncQuality, handSyncActive } = useKalidokit({
+  useKalidokit({
     vrm: loadedVRM,
     poseLandmarks,
     worldLandmarks,
@@ -126,37 +135,91 @@ export function VRMCharacter({
   });
 
   // VRMA 애니메이션 로드 및 재생
-  const handlePlayAnimation = useCallback(async (url: string, loop: boolean = false) => {
+  const handlePlayAnimation = useCallback(async (
+    url: string,
+    loop: boolean = false,
+    onFinished?: () => void
+  ) => {
     if (!loadedVRM) return;
 
+    // 현재 버전 캡처 (로딩 중 프리셋이 변경되면 무시)
+    const currentVersion = animationVersionRef.current;
+
     try {
+      // 애니메이션 시작 플래그 설정 (async state 동기화 대기용)
+      animationJustStartedRef.current = true;
       setIsPlayingVRMA(true);
       setLoop(loop);
-      await loadAnimation(url);
+      await loadAnimation(url, undefined, {
+        crossFadeDuration: 0.5, // 0.5초 크로스페이드
+        onFinished: onFinished, // 애니메이션 종료 콜백
+      });
+
+      // 로딩 중 프리셋이 변경되었으면 무시
+      if (animationVersionRef.current !== currentVersion) {
+        console.log('[VRMCharacter] Animation load completed but version changed, ignoring');
+        return;
+      }
+
       playAnimation();
       console.log('[VRMCharacter] Playing animation:', url, loop ? '(loop)' : '(once)');
     } catch (error) {
       console.error('[VRMCharacter] Failed to play animation:', error);
-      setIsPlayingVRMA(false);
+      // 버전이 같을 때만 상태 리셋
+      if (animationVersionRef.current === currentVersion) {
+        animationJustStartedRef.current = false;
+        setIsPlayingVRMA(false);
+      }
     }
   }, [loadedVRM, loadAnimation, playAnimation, setLoop]);
 
   // 초기 애니메이션 시작
   const startInitialAnimation = useCallback(async () => {
-    if (initialAnimationStartedRef.current) return;
-    if (!loadedVRM || animationPreset === 'none') {
+    console.log('[VRMCharacter] startInitialAnimation called with preset:', animationPreset);
+
+    if (initialAnimationStartedRef.current) {
+      console.log('[VRMCharacter] Animation already started, skipping');
+      return;
+    }
+
+    // 'none' 프리셋 또는 VRM 미로드 시 조기 종료
+    if (!loadedVRM) {
+      console.log('[VRMCharacter] VRM not loaded, skipping');
+      return;
+    }
+
+    if (animationPreset === 'none') {
+      console.log('[VRMCharacter] Preset is none, completing without animation');
       setInitialAnimationPhase('complete');
+      isPlayingPresetRef.current = false;
       return;
     }
 
     const preset = ANIMATION_PRESETS[animationPreset];
+    if (!preset) {
+      console.error('[VRMCharacter] Invalid preset:', animationPreset);
+      return;
+    }
+
     initialAnimationStartedRef.current = true;
+    isPlayingPresetRef.current = true; // 프리셋 애니메이션 시작
 
     if (preset.initial) {
-      // 초기 등장 애니메이션 재생
+      // 초기 등장 애니메이션 재생 (1회, 완료 시 idle로 전환)
       setInitialAnimationPhase('initial');
       console.log('[VRMCharacter] Starting initial animation:', preset.initial);
-      await handlePlayAnimation(preset.initial, false);
+      await handlePlayAnimation(preset.initial, false, () => {
+        // 초기 애니메이션 완료 콜백 - idle로 전환
+        console.log('[VRMCharacter] Initial animation finished, transitioning to idle...');
+        if (preset.idle) {
+          setInitialAnimationPhase('idle');
+          handlePlayAnimation(preset.idle, true); // idle은 루프
+        } else {
+          setInitialAnimationPhase('complete');
+          isPlayingPresetRef.current = false;
+          setIsPlayingVRMA(false);
+        }
+      });
     } else if (preset.idle) {
       // 바로 idle 애니메이션으로
       setInitialAnimationPhase('idle');
@@ -164,41 +227,37 @@ export function VRMCharacter({
       await handlePlayAnimation(preset.idle, true);
     } else {
       setInitialAnimationPhase('complete');
+      isPlayingPresetRef.current = false;
     }
   }, [loadedVRM, animationPreset, handlePlayAnimation]);
 
-  // Idle 애니메이션 시작 (초기 애니메이션 완료 후)
-  const startIdleAnimation = useCallback(async () => {
-    if (animationPreset === 'none') return;
+  // Idle 애니메이션 시작 (초기 애니메이션 완료 후) - 콜백 방식으로 변경되어 직접 호출하지 않음
+  // startInitialAnimation에서 onFinished 콜백으로 처리
 
-    const preset = ANIMATION_PRESETS[animationPreset];
-    if (preset.idle) {
-      setInitialAnimationPhase('idle');
-      console.log('[VRMCharacter] Starting idle animation:', preset.idle);
-      await handlePlayAnimation(preset.idle, true);
-    } else {
-      setInitialAnimationPhase('complete');
-    }
-  }, [animationPreset, handlePlayAnimation]);
-
-  // animationUrl prop 변경 감지
+  // animationUrl prop 변경 감지 (외부에서 전달된 애니메이션만 처리)
   useEffect(() => {
     if (animationUrl && loadedVRM) {
+      // 외부 애니메이션 요청 - 프리셋 애니메이션 중단
+      isPlayingPresetRef.current = false;
       handlePlayAnimation(animationUrl);
-    } else if (!animationUrl && isPlayingVRMA && !isAnimationFadingOut) {
-      // 애니메이션 URL이 null로 변경되면 부드럽게 페이드아웃
-      console.log('[VRMCharacter] Animation URL cleared, fading out...');
+    } else if (
+      !animationUrl &&
+      isPlayingVRMA &&
+      !isAnimationFadingOut &&
+      !isPlayingPresetRef.current &&
+      !animationJustStartedRef.current // 새 애니메이션 시작 중이면 fadeOut 방지
+    ) {
+      // 외부 애니메이션 URL이 null로 변경되고, 프리셋이 아닌 경우만 페이드아웃
+      console.log('[VRMCharacter] External animation URL cleared, fading out...');
       fadeOutAnimation(0.5);
     }
+    // 프리셋 애니메이션 재생 중이면 animationUrl이 null이어도 페이드아웃하지 않음
   }, [animationUrl, loadedVRM, handlePlayAnimation, fadeOutAnimation, isPlayingVRMA, isAnimationFadingOut]);
 
-  // 페이드아웃 완료 감지
-  useEffect(() => {
-    // 페이드아웃이 완료되었고 재생 중이 아니면 상태 리셋
-    if (isPlayingVRMA && !isAnimationPlaying && !isAnimationFadingOut) {
-      setIsPlayingVRMA(false);
-    }
-  }, [isPlayingVRMA, isAnimationPlaying, isAnimationFadingOut]);
+  // 페이드아웃 완료 감지 (useFrame에서 처리하므로 제거)
+  // Note: useFrame 콜백에서 animationJustStartedRef.current 체크와 함께 처리됨
+  // 이 useEffect는 애니메이션 로딩 중에 조기 실행되어 race condition 발생
+  // 따라서 useFrame에서만 상태 리셋 처리
 
   // 표정 변경 처리
   useEffect(() => {
@@ -221,20 +280,41 @@ export function VRMCharacter({
   // 애니메이션 프리셋 변경 시 리셋
   useEffect(() => {
     if (loadedVRM && initialAnimationStartedRef.current) {
+      console.log('[VRMCharacter] Preset changed to:', animationPreset, '- resetting animation');
+
+      // 버전 증가 (진행 중인 애니메이션 로드 무효화)
+      animationVersionRef.current++;
+
       // 프리셋 변경 시 초기 애니메이션 다시 시작
       initialAnimationStartedRef.current = false;
       setInitialAnimationPhase('pending');
       stopAnimation();
-      setIsPlayingVRMA(false);
+
+      // 'none' 프리셋은 애니메이션 없음 - 즉시 Kalidokit으로 전환
+      if (animationPreset === 'none') {
+        isPlayingPresetRef.current = false;
+        animationJustStartedRef.current = false;
+        setIsPlayingVRMA(false);
+        setInitialAnimationPhase('complete');
+        return;
+      }
+
+      // 다른 프리셋은 즉시 상태 설정하여 Kalidokit/fadeOut 간섭 방지
+      // - isPlayingVRMA=true: Kalidokit 비활성화
+      // - isPlayingPresetRef=true: animationUrl effect의 fadeOut 방지
+      // - animationJustStartedRef=true: 조기 상태 리셋 방지
+      isPlayingPresetRef.current = true;
+      animationJustStartedRef.current = true;
+      setIsPlayingVRMA(true);
 
       // 약간의 딜레이 후 새 애니메이션 시작
       const timer = setTimeout(() => {
+        console.log('[VRMCharacter] Starting new preset animation:', animationPreset);
         startInitialAnimation();
       }, 200);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animationPreset]);
+  }, [animationPreset, loadedVRM, stopAnimation, startInitialAnimation]);
 
   // VRM 모델 로드 (중복 로딩 방지)
   useEffect(() => {
@@ -343,55 +423,22 @@ export function VRMCharacter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelUrl]); // modelUrl만 의존성으로 - 나머지는 안정적이므로 제외
 
-  // 디버그 카운터
-  const debugFrameRef = useRef(0);
-  const prevAnimationPlayingRef = useRef(false);
-
   // 매 프레임마다 VRM 업데이트 (표정 + 애니메이션)
   useFrame((_, delta) => {
-    debugFrameRef.current++;
-
-    // 처음 몇 프레임만 디버그
-    if (debugFrameRef.current <= 5 || debugFrameRef.current % 300 === 0) {
-      console.log('[VRMCharacter] Frame', debugFrameRef.current, {
-        vrmLoaded: !!loadedVRM,
-        kalidokitActive: isActive,
-        syncFrames: frameCount,
-        syncQuality: syncQuality.toFixed(2),
-        handSync: handSyncActive,
-        poseLandmarks: poseLandmarks?.length ?? 'null',
-        worldLandmarks: worldLandmarks?.length ?? 'null',
-        animationPlaying: isAnimationPlaying,
-      });
-    }
-
     // VRMA 애니메이션 업데이트 (재생 중이거나 페이드아웃 중일 때)
     if (isPlayingVRMA || isAnimationFadingOut) {
       updateAnimation(delta);
 
-      // 애니메이션 종료 감지 (isAnimationPlaying이 true→false로 변할 때)
-      // 페이드아웃 중이 아닐 때만 처리
-      if (prevAnimationPlayingRef.current && !isAnimationPlaying && !isAnimationFadingOut) {
-        // 초기 애니메이션 → Idle 전환
-        if (initialAnimationPhase === 'initial') {
-          console.log('[VRMCharacter] Initial animation ended, transitioning to idle...');
-          startIdleAnimation();
-        } else if (initialAnimationPhase !== 'idle') {
-          // 일반 애니메이션 종료 (idle 루프가 아닌 경우)
-          console.log('[VRMCharacter] Animation ended, starting fadeOut...');
-          fadeOutAnimation(0.5); // 0.5초 동안 부드럽게 페이드아웃
-          onAnimationEnd?.();
-        }
-        // idle 루프 중에는 계속 재생되므로 여기에 도달하지 않음
+      // 애니메이션이 실제로 시작되면 플래그 해제
+      if (animationJustStartedRef.current && isAnimationPlaying) {
+        animationJustStartedRef.current = false;
       }
 
-      // 페이드아웃이 완료되면 상태 리셋
-      if (isPlayingVRMA && !isAnimationPlaying && !isAnimationFadingOut) {
-        console.log('[VRMCharacter] FadeOut complete, returning to idle');
+      // 페이드아웃이 완료되면 상태 리셋 (단, 방금 시작한 경우는 제외)
+      if (isPlayingVRMA && !isAnimationPlaying && !isAnimationFadingOut && !animationJustStartedRef.current) {
         setIsPlayingVRMA(false);
       }
     }
-    prevAnimationPlayingRef.current = isAnimationPlaying;
 
     // VRM 업데이트 (표정 등)
     if (loadedVRM) {

@@ -37,7 +37,7 @@ export interface UseVRMAAnimationReturn {
   isSupported: boolean;
 
   // 액션
-  loadAnimation: (url: string, name?: string) => Promise<void>;
+  loadAnimation: (url: string, name?: string, options?: LoadAnimationOptions) => Promise<void>;
   play: () => void;
   pause: () => void;
   stop: () => void;
@@ -53,12 +53,19 @@ export interface UseVRMAAnimationReturn {
   dispose: () => void;
 }
 
+// 애니메이션 로드 옵션
+export interface LoadAnimationOptions {
+  crossFadeDuration?: number;  // 크로스페이드 시간 (초), 기본 0.5
+  onFinished?: () => void;     // 애니메이션 완료 콜백 (루프가 아닌 경우)
+}
+
 // ============================================================================
 // 메인 훅
 // ============================================================================
 
 // 기본 페이드아웃 시간 (초)
 const DEFAULT_FADEOUT_DURATION = 0.6;
+const DEFAULT_CROSSFADE_DURATION = 0.5;
 
 export function useVRMAAnimation(): UseVRMAAnimationReturn {
   const [currentAnimation, setCurrentAnimation] = useState<string | null>(null);
@@ -71,10 +78,14 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
   const vrmRef = useRef<VRM | null>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const currentActionRef = useRef<THREE.AnimationAction | null>(null);
+  const previousActionRef = useRef<THREE.AnimationAction | null>(null); // 크로스페이드용
   const currentClipRef = useRef<THREE.AnimationClip | null>(null);
   const loaderRef = useRef<GLTFLoader | null>(null);
   const loopRef = useRef<boolean>(true);
   const fadeOutTimerRef = useRef<number | null>(null);
+  const onFinishedCallbackRef = useRef<(() => void) | null>(null);
+  const expectedActionRef = useRef<THREE.AnimationAction | null>(null); // 콜백 대기 중인 액션
+  const animationStartTimeRef = useRef<number>(0); // 애니메이션 시작 시간
 
   // VRMA 지원 여부 (패키지 설치됨)
   const isSupported = true;
@@ -91,21 +102,58 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
     return loaderRef.current;
   }, [isSupported]);
 
+  // 애니메이션 종료 이벤트 핸들러 (initialize보다 먼저 정의)
+  const handleAnimationFinished = useCallback((event: any) => {
+    const finishedAction = event.action as THREE.AnimationAction;
+    const clip = finishedAction.getClip();
+    const elapsed = (Date.now() - animationStartTimeRef.current) / 1000;
+
+    console.log('[useVRMAAnimation] Animation finished event:', {
+      clipName: clip.name,
+      clipDuration: clip.duration.toFixed(2),
+      elapsedTime: elapsed.toFixed(2),
+      isExpectedAction: finishedAction === expectedActionRef.current,
+    });
+
+    // 콜백 대기 중인 액션이 아니면 무시 (크로스페이드 중 이전 액션의 이벤트 무시)
+    if (finishedAction !== expectedActionRef.current) {
+      console.log('[useVRMAAnimation] Ignoring finished event from non-expected action');
+      return;
+    }
+
+    // 콜백 실행
+    if (onFinishedCallbackRef.current) {
+      const callback = onFinishedCallbackRef.current;
+      onFinishedCallbackRef.current = null; // 1회만 실행
+      expectedActionRef.current = null;
+      console.log('[useVRMAAnimation] Executing onFinished callback');
+      callback();
+    }
+  }, []);
+
   // VRM 모델 초기화 (mixer 생성)
   const initialize = useCallback((vrm: VRM) => {
     // 기존 mixer 정리
     if (mixerRef.current) {
       mixerRef.current.stopAllAction();
+      mixerRef.current.removeEventListener('finished', handleAnimationFinished);
     }
 
     vrmRef.current = vrm;
     mixerRef.current = new THREE.AnimationMixer(vrm.scene);
 
+    // 애니메이션 종료 이벤트 리스너 등록
+    mixerRef.current.addEventListener('finished', handleAnimationFinished);
+
     console.log('[useVRMAAnimation] Initialized', { supported: isSupported });
-  }, [isSupported]);
+  }, [isSupported, handleAnimationFinished]);
 
   // VRMA 파일 로드
-  const loadAnimation = useCallback(async (url: string, name?: string): Promise<void> => {
+  const loadAnimation = useCallback(async (
+    url: string,
+    name?: string,
+    options?: LoadAnimationOptions
+  ): Promise<void> => {
     if (!isSupported) {
       const err = new Error('VRMA not supported. Install @pixiv/three-vrm-animation.');
       setError(err);
@@ -117,6 +165,8 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
       setError(err);
       throw err;
     }
+
+    const crossFadeDuration = options?.crossFadeDuration ?? DEFAULT_CROSSFADE_DURATION;
 
     setIsLoading(true);
     setError(null);
@@ -146,20 +196,58 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
       const clip = createVRMAnimationClip(vrmAnimations[0], vrmRef.current);
       currentClipRef.current = clip;
 
-      // 기존 애니메이션 정지
-      if (currentActionRef.current) {
-        currentActionRef.current.stop();
-      }
+      console.log(`[useVRMAAnimation] Clip info:`, {
+        name: clip.name,
+        duration: clip.duration,
+        tracks: clip.tracks.length,
+      });
+
+      // 기존 액션 캐시 제거 (새로운 액션 생성 보장)
+      mixerRef.current!.uncacheClip(clip);
 
       // 새 애니메이션 액션 생성
-      const action = mixerRef.current!.clipAction(clip);
-      action.setLoop(loopRef.current ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
-      action.clampWhenFinished = true;
-      currentActionRef.current = action;
+      const newAction = mixerRef.current!.clipAction(clip);
+      newAction.setLoop(loopRef.current ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+      newAction.clampWhenFinished = true;
+      newAction.timeScale = 1.0; // 정상 속도 보장
+
+      // onFinished 콜백 저장 (루프가 아닌 경우에만)
+      if (options?.onFinished && !loopRef.current) {
+        onFinishedCallbackRef.current = options.onFinished;
+        expectedActionRef.current = newAction; // 이 액션이 끝날 때 콜백 실행
+        console.log('[useVRMAAnimation] Callback registered for action, waiting for duration:', clip.duration);
+      } else {
+        onFinishedCallbackRef.current = null;
+        expectedActionRef.current = null;
+      }
+
+      // 이전 애니메이션 처리
+      const hadPreviousAnimation = currentActionRef.current && currentActionRef.current.isRunning();
+
+      if (hadPreviousAnimation) {
+        console.log(`[useVRMAAnimation] CrossFading from previous animation over ${crossFadeDuration}s`);
+
+        // 이전 액션 저장 (크로스페이드용)
+        previousActionRef.current = currentActionRef.current;
+
+        // 크로스페이드: 이전 액션을 fadeOut하면서 새 액션을 fadeIn
+        // 새 액션은 play() 호출 시 시작됨 (여기서는 시작하지 않음)
+      } else {
+        // 기존 애니메이션이 없으면 정리
+        if (currentActionRef.current) {
+          currentActionRef.current.stop();
+        }
+        previousActionRef.current = null;
+      }
+
+      currentActionRef.current = newAction;
 
       const animName = name || url.split('/').pop()?.replace('.vrma', '') || 'unknown';
       setCurrentAnimation(animName);
-      setIsPlaying(false);
+      // isPlaying 상태는 play() 호출 시 설정 (크로스페이드 중에는 유지)
+      if (!previousActionRef.current) {
+        setIsPlaying(false);
+      }
       setIsPaused(false);
 
       console.log(`[useVRMAAnimation] Loaded: ${animName} (duration: ${clip.duration.toFixed(2)}s)`);
@@ -173,22 +261,44 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
   }, [getLoader, isSupported]);
 
   // 재생
-  const play = useCallback(() => {
+  const play = useCallback((crossFadeDuration: number = DEFAULT_CROSSFADE_DURATION) => {
     if (!currentActionRef.current) {
       console.warn('[useVRMAAnimation] No animation loaded');
       return;
     }
 
+    const clip = currentActionRef.current.getClip();
+
     if (isPaused) {
+      // 일시정지에서 재개
       currentActionRef.current.paused = false;
+    } else if (previousActionRef.current) {
+      // 크로스페이드: 이전 애니메이션에서 부드럽게 전환
+      console.log('[useVRMAAnimation] Starting crossfade play');
+      currentActionRef.current.reset();
+      currentActionRef.current.setEffectiveWeight(1);
+      currentActionRef.current.play();
+      previousActionRef.current.crossFadeTo(currentActionRef.current, crossFadeDuration, false);
+      previousActionRef.current = null; // 크로스페이드 시작 후 참조 해제
     } else {
+      // 새로운 재생
       currentActionRef.current.reset();
       currentActionRef.current.play();
     }
 
+    // 시작 시간 기록 (디버깅용)
+    animationStartTimeRef.current = Date.now();
+
     setIsPlaying(true);
     setIsPaused(false);
-    console.log('[useVRMAAnimation] Play');
+
+    console.log('[useVRMAAnimation] Play:', {
+      clipName: clip.name,
+      duration: clip.duration.toFixed(2),
+      loop: loopRef.current,
+      timeScale: currentActionRef.current.timeScale,
+      hasCrossfade: !!previousActionRef.current,
+    });
   }, [isPaused]);
 
   // 일시정지
@@ -248,6 +358,10 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
       mixerRef.current.stopAllAction();
     }
 
+    // 콜백 refs 정리 (stale callback 방지)
+    onFinishedCallbackRef.current = null;
+    expectedActionRef.current = null;
+
     // VRM을 바인드 포즈로 리셋
     if (vrmRef.current?.humanoid) {
       (vrmRef.current.humanoid as any).resetNormalizedPose?.();
@@ -269,12 +383,13 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
   }, []);
 
   // Mixer 업데이트 (애니메이션 루프에서 호출)
-  // 페이드아웃 중에도 mixer 업데이트 필요 (부드러운 전환을 위해)
+  // 호출자(VRMCharacter)가 언제 호출할지 결정하므로, 내부에서는 mixer만 업데이트
+  // 이전에는 isPlaying 체크가 있었지만, setState 비동기 문제로 제거
   const update = useCallback((deltaTime: number) => {
-    if (mixerRef.current && (isPlaying || isFadingOut) && !isPaused) {
+    if (mixerRef.current) {
       mixerRef.current.update(deltaTime);
     }
-  }, [isPlaying, isPaused, isFadingOut]);
+  }, []);
 
   // Mixer 반환
   const getMixer = useCallback(() => mixerRef.current, []);
@@ -292,13 +407,22 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
       currentActionRef.current = null;
     }
 
+    if (previousActionRef.current) {
+      previousActionRef.current.stop();
+      previousActionRef.current = null;
+    }
+
     if (mixerRef.current) {
+      mixerRef.current.removeEventListener('finished', handleAnimationFinished);
       mixerRef.current.stopAllAction();
       mixerRef.current = null;
     }
 
     currentClipRef.current = null;
     vrmRef.current = null;
+    onFinishedCallbackRef.current = null;
+    expectedActionRef.current = null;
+    animationStartTimeRef.current = 0;
 
     setCurrentAnimation(null);
     setIsPlaying(false);
@@ -307,7 +431,7 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
     setError(null);
 
     console.log('[useVRMAAnimation] Disposed');
-  }, []);
+  }, [handleAnimationFinished]);
 
   return {
     currentAnimation,

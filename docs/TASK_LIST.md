@@ -5,7 +5,7 @@
 | Category | Completed | Total | Progress |
 |----------|-----------|-------|----------|
 | Core Infrastructure | 7 | 7 | 100% |
-| VRM & Animation | 6 | 9 | 67% |
+| VRM & Animation | 8 | 10 | 80% |
 | Theme System | 10 | 12 | 83% |
 | Exercise System | 18 | 18 | 100% |
 | TTS System | 6 | 9 | 67% |
@@ -15,7 +15,7 @@
 | Accessibility | 5 | 7 | 71% |
 | **Medical System (Phase 1)** | **12** | **14** | **86%** |
 | **Gamification (Phase 1)** | **6** | **6** | **100%** |
-| **Overall** | **86** | **112** | **77%** |
+| **Overall** | **88** | **112** | **79%** |
 
 ---
 
@@ -53,9 +53,10 @@
 | Expression system | [x] | - | 5 expressions |
 | VRM feedback service | [x] | - | Audio sync |
 | 6 worldview VRM models | [x] | - | Configured in constants |
+| Animation transition system | [x] | - | Initial→Idle crossfade |
+| Animation/Kalidokit state mgmt | [x] | - | Race condition 수정 |
 | Mobile lazy loading | [ ] | High | Performance critical |
 | VRM model caching | [ ] | Medium | Reduce load times |
-| Animation blending | [ ] | Low | Smooth transitions |
 
 ---
 
@@ -226,6 +227,15 @@
 
 ## Recent Changes (2026-01-24)
 
+### VRM Animation Race Condition Fix (NEW)
+1. `VRMCharacter.tsx` 수정
+   - 문제: useEffect가 애니메이션 로딩 중 `isPlayingVRMA`를 false로 리셋
+   - 원인: `isPlayingVRMA && !isAnimationPlaying && !isAnimationFadingOut` 조건이 로딩 중에도 충족
+   - 해결: 문제의 useEffect 제거 (useFrame에서 `animationJustStartedRef` 체크로 대체)
+2. `useVRMAAnimation.ts` 수정
+   - `update()` 함수에서 내부 `isPlaying` 체크 제거 (비동기 상태 문제)
+   - `stop()` 함수에서 콜백 refs 정리 추가
+
 ### Scene Settings Panel 시스템 (NEW)
 1. 3D 씬 설정 패널 (`src/components/three/SceneSettingsPanel.tsx`)
    - 조명 설정: 주변광, 방향광, 환경광 강도 슬라이더
@@ -344,6 +354,8 @@
 15. Fixed background randomizer not working (separate useBackground hooks issue)
 16. Fixed camera angle buttons not working in VRMScene (CAMERA_PRESETS 미적용 수정)
 17. Fixed VRM mini avatar covering bottom HUD (position 조정)
+18. **Fixed VRM animation race condition** - useEffect resetting `isPlayingVRMA` during loading
+19. **Fixed Kalidokit interference during animation** - Added `animationJustStartedRef` guard
 
 ### New Features (Earlier)
 1. Worldview-specific typing speeds
@@ -434,4 +446,4 @@ public/
 
 ---
 
-*Last updated: 2026-01-24 (Scene Settings Panel + Skybox 회전 + VN UI 개선 + 버그 수정)*
+*Last updated: 2026-01-24 (VRM Animation Race Condition Fix + Scene Settings Panel + Skybox 회전 + VN UI 개선)*

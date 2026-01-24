@@ -104,30 +104,27 @@ const SETTINGS_ITEMS: Array<{
   },
 ];
 
+// 클라이언트에서만 실행되는 초기 설정 로드 함수
+function getInitialSettings(): AccessibilitySettings {
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved) as Partial<AccessibilitySettings>;
+      return { ...DEFAULT_SETTINGS, ...parsed };
+    }
+  } catch (error) {
+    console.error('Failed to load accessibility settings:', error);
+  }
+  return DEFAULT_SETTINGS;
+}
+
 export default function AccessibilitySettingsPage() {
   const router = useRouter();
-  const [settings, setSettings] = useState<AccessibilitySettings>(DEFAULT_SETTINGS);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hapticSupported, setHapticSupported] = useState(false);
-
-  // 초기 설정 로드
-  useEffect(() => {
-    // 햅틱 지원 확인
-    setHapticSupported(hapticService.checkSupport());
-
-    // 저장된 설정 로드
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<AccessibilitySettings>;
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
-      }
-    } catch (error) {
-      console.error('Failed to load accessibility settings:', error);
-    }
-
-    setIsLoaded(true);
-  }, []);
+  // Lazy initialization으로 cascading render 방지
+  const [settings, setSettings] = useState<AccessibilitySettings>(getInitialSettings);
+  const [isLoaded] = useState(true); // 동기적 초기화이므로 즉시 true
+  const [hapticSupported] = useState(() => hapticService.checkSupport());
 
   // 설정 적용 (CSS 변수 및 클래스 업데이트)
   const applySettings = useCallback((settings: AccessibilitySettings) => {

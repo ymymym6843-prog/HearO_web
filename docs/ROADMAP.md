@@ -22,6 +22,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - **Last Updated**: 2026-01-24
 
 ### Recent Major Updates
+- **VRM 애니메이션 시스템 안정화**: Race condition 수정, Kalidokit 간섭 방지
 - **Scene Settings Panel**: 조명, 카메라, 배경 실시간 조절
 - **Skybox 회전 애니메이션**: 360도 배경 부드러운 회전
 - **VN 스타일 UI 개선**: 스킵 버튼, NPC 위치 조정
@@ -48,7 +49,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Phase 2: VRM & Animation System (85% Complete)
+## Phase 2: VRM & Animation System (90% Complete)
 
 ### Completed Tasks
 - [x] VRM model loader (VRMCharacter component)
@@ -57,11 +58,12 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - [x] Expression system (happy, sad, angry, surprised, relaxed)
 - [x] VRM feedback service
 - [x] 6 worldview VRM models configured
+- [x] Animation transition system (Initial → Idle crossfade)
+- [x] Animation/Kalidokit state management (race condition fix)
 
 ### Remaining Tasks
 - [ ] Optimize VRM loading for mobile (lazy loading)
 - [ ] Add VRM model caching system
-- [ ] Implement smooth animation blending
 
 ---
 
@@ -257,6 +259,9 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 2. **TTS Fallback**: Google Cloud TTS not yet integrated
 3. **Offline Mode**: Limited offline functionality
 4. **Test Coverage**: Unit tests needed for core services
+
+### Recently Resolved
+- ~~**Animation Race Condition**~~: Fixed useEffect triggering premature state reset during animation loading
 
 ---
 

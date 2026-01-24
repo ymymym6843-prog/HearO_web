@@ -12,27 +12,20 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { useWorldStore } from '@/stores/useWorldStore';
 import { hapticService } from '@/services/hapticService';
 import { useSettingsStore, DEFAULT_SETTINGS } from '@/stores/useSettingsStore';
 
 export default function SettingsPage() {
   const router = useRouter();
   const { user, profile, signOut, isLoading: authLoading } = useAuthStore();
-  const { currentWorldview } = useWorldStore();
 
   // Zustand 스토어에서 직접 설정 가져오기
   const settings = useSettingsStore();
   const { updateSetting, resetSettings } = settings;
 
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hapticSupported, setHapticSupported] = useState(false);
-
-  // 초기 로드
-  useEffect(() => {
-    setHapticSupported(hapticService.checkSupport());
-    setIsLoaded(true);
-  }, []);
+  // Lazy initialization으로 haptic 지원 여부 확인 (cascading render 방지)
+  const [hapticSupported] = useState(() => hapticService.checkSupport());
+  const [isLoaded, setIsLoaded] = useState(true); // 동기적 초기화이므로 즉시 true
 
   // 설정 변경 시 햅틱 피드백
   const handleUpdateSetting = <K extends keyof typeof DEFAULT_SETTINGS>(
@@ -291,72 +284,11 @@ export default function SettingsPage() {
             />
             {settings.backgroundRemoval && (
               <div className="p-4 bg-hearo-surface rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-semibold text-white">배경 이미지</span>
-                  <span className="text-xs text-gray-400">현재: {currentWorldview}</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => handleUpdateSetting('customBackground', null)}
-                    className={`aspect-video rounded-lg border-2 transition-colors flex items-center justify-center ${
-                      !settings.customBackground
-                        ? 'border-hearo-primary bg-gradient-to-br from-slate-800 to-slate-900'
-                        : 'border-white/20 bg-gradient-to-br from-slate-800 to-slate-900 hover:border-white/40'
-                    }`}
-                    aria-label="기본 배경"
-                  >
-                    <span className="text-xs text-gray-400">기본</span>
-                  </button>
-                  <button
-                    onClick={() => handleUpdateSetting('customBackground', `/images/worldviews/${currentWorldview}01_bg.jpg`)}
-                    className={`aspect-video rounded-lg border-2 transition-colors bg-cover bg-center ${
-                      settings.customBackground === `/images/worldviews/${currentWorldview}01_bg.jpg`
-                        ? 'border-hearo-primary'
-                        : 'border-white/20 hover:border-white/40'
-                    }`}
-                    style={{ backgroundImage: `url(/images/worldviews/${currentWorldview}01_bg.jpg)` }}
-                    aria-label="세계관 배경 1"
-                  />
-                  <button
-                    onClick={() => handleUpdateSetting('customBackground', `/images/worldviews/${currentWorldview}02_bg.jpg`)}
-                    className={`aspect-video rounded-lg border-2 transition-colors bg-cover bg-center ${
-                      settings.customBackground === `/images/worldviews/${currentWorldview}02_bg.jpg`
-                        ? 'border-hearo-primary'
-                        : 'border-white/20 hover:border-white/40'
-                    }`}
-                    style={{ backgroundImage: `url(/images/worldviews/${currentWorldview}02_bg.jpg)` }}
-                    aria-label="세계관 배경 2"
-                  />
-                  <button
-                    onClick={() => handleUpdateSetting('customBackground', `/images/worldviews/${currentWorldview}03_bg.jpg`)}
-                    className={`aspect-video rounded-lg border-2 transition-colors bg-cover bg-center ${
-                      settings.customBackground === `/images/worldviews/${currentWorldview}03_bg.jpg`
-                        ? 'border-hearo-primary'
-                        : 'border-white/20 hover:border-white/40'
-                    }`}
-                    style={{ backgroundImage: `url(/images/worldviews/${currentWorldview}03_bg.jpg)` }}
-                    aria-label="세계관 배경 3"
-                  />
-                  <button
-                    onClick={() => handleUpdateSetting('customBackground', `/images/worldviews/${currentWorldview}04_bg.jpg`)}
-                    className={`aspect-video rounded-lg border-2 transition-colors bg-cover bg-center ${
-                      settings.customBackground === `/images/worldviews/${currentWorldview}04_bg.jpg`
-                        ? 'border-hearo-primary'
-                        : 'border-white/20 hover:border-white/40'
-                    }`}
-                    style={{ backgroundImage: `url(/images/worldviews/${currentWorldview}04_bg.jpg)` }}
-                    aria-label="세계관 배경 4"
-                  />
-                  <button
-                    onClick={() => handleUpdateSetting('customBackground', `/images/worldviews/${currentWorldview}05_bg.jpg`)}
-                    className={`aspect-video rounded-lg border-2 transition-colors bg-cover bg-center ${
-                      settings.customBackground === `/images/worldviews/${currentWorldview}05_bg.jpg`
-                        ? 'border-hearo-primary'
-                        : 'border-white/20 hover:border-white/40'
-                    }`}
-                    style={{ backgroundImage: `url(/images/worldviews/${currentWorldview}05_bg.jpg)` }}
-                    aria-label="세계관 배경 5"
-                  />
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Icon name="information-circle-outline" size={16} />
+                  <p className="text-sm">
+                    운동 화면에서 🎲 버튼으로 배경을 랜덤 변경할 수 있습니다
+                  </p>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
                   * 배경 분리는 GPU를 사용하므로 배터리 소모가 증가합니다
