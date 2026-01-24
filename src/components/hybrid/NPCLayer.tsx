@@ -72,8 +72,8 @@ export function NPCLayer({
   transitionProgress = 0,
   npcId,
   emotion = 'normal',
-  position = 'left',
-  sizePercent = 80,
+  position = 'center', // VN 스타일: 기본값 중앙
+  sizePercent = 70,    // 대화창과 겹치지 않도록 70%로 조정
 }: NPCLayerProps) {
   const { transitionConfig } = usePhaseStore();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -88,10 +88,10 @@ export function NPCLayer({
   // 위치 스타일 계산
   const positionStyle: React.CSSProperties = {
     position: 'absolute',
-    bottom: 0,
-    ...(position === 'left' && { left: '5%' }),
+    bottom: '15%', // 대화창 위에 위치하도록 여백
+    ...(position === 'left' && { left: '10%' }),
     ...(position === 'center' && { left: '50%', transform: 'translateX(-50%)' }),
-    ...(position === 'right' && { right: '5%' }),
+    ...(position === 'right' && { right: '10%' }),
   };
 
   // 퇴장 애니메이션 타입
@@ -114,7 +114,7 @@ export function NPCLayer({
         <div
           className="relative h-full"
           style={{
-            aspectRatio: '2/3', // 일반적인 스탠딩 일러스트 비율
+            aspectRatio: '768/1376', // 실제 NPC 이미지 비율 (약 9:16)
           }}
         >
           {/* 로딩 플레이스홀더 */}
@@ -154,15 +154,7 @@ export function NPCLayer({
           )}
         </div>
 
-        {/* NPC 이름 태그 (디버그용, 선택적) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs"
-            style={{ backgroundColor: npc.color + '80' }}
-          >
-            {npc.name}
-          </div>
-        )}
+        {/* NPC 이름 태그 제거됨 - VNDialogueBox에서 이름 표시 */}
       </motion.div>
     </AnimatePresence>
   );

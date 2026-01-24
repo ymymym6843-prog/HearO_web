@@ -36,6 +36,8 @@ interface VNDialogueBoxProps {
   typingSpeed?: number;
   /** TTS 활성화 */
   enableTTS?: boolean;
+  /** 아바타 표시 여부 (기본: false, NPCLayer와 함께 사용 시 false) */
+  showAvatar?: boolean;
 }
 
 // ============================================
@@ -136,6 +138,7 @@ export function VNDialogueBox({
   onDialogueComplete,
   typingSpeed = DEFAULT_TYPING_SPEED,
   enableTTS = false,
+  showAvatar = false, // 기본적으로 아바타 숨김 (NPCLayer와 함께 사용)
 }: VNDialogueBoxProps) {
   const dialogue = useDialogue();
   const { advanceDialogue, endDialogue } = usePhaseStore();
@@ -323,26 +326,38 @@ export function VNDialogueBox({
       />
 
       {/* 대화창 컨테이너 */}
-      <div className="relative flex items-end gap-4 max-w-2xl mx-auto">
-        {/* NPC 아바타 */}
-        <NPCAvatar
-          npc={npc}
-          emotion={emotion}
-          worldview={worldview}
-          isSpeaking={isSpeaking}
-        />
+      <div className="relative flex items-end gap-4 max-w-3xl mx-auto">
+        {/* NPC 아바타 (showAvatar가 true일 때만 표시) */}
+        {showAvatar && (
+          <NPCAvatar
+            npc={npc}
+            emotion={emotion}
+            worldview={worldview}
+            isSpeaking={isSpeaking}
+          />
+        )}
 
         {/* 대화 내용 */}
         <div
-          className="flex-1 rounded-2xl rounded-bl-sm p-4 border-2"
+          className={`flex-1 rounded-2xl p-4 sm:p-5 border-2 ${showAvatar ? 'rounded-bl-sm' : ''}`}
           style={{
-            backgroundColor: 'rgba(30, 30, 40, 0.9)',
-            borderColor: npc.color + '80',
+            backgroundColor: 'rgba(20, 20, 30, 0.95)',
+            borderColor: npc.color + '60',
+            boxShadow: `0 0 30px ${npc.color}20`,
           }}
         >
           {/* NPC 이름 */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-bold text-sm" style={{ color: npc.color }}>
+          <div className="flex items-center gap-2 mb-3">
+            {/* 말하는 중 인디케이터 (아바타 없을 때) */}
+            {!showAvatar && isSpeaking && (
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: npc.color }}
+              />
+            )}
+            <span className="font-bold text-base" style={{ color: npc.color }}>
               {npc.name}
             </span>
             {npc.title && (
@@ -353,7 +368,7 @@ export function VNDialogueBox({
           </div>
 
           {/* 대사 텍스트 */}
-          <p className="text-sm sm:text-base leading-relaxed text-white/90 min-h-[3em]">
+          <p className="text-base sm:text-lg leading-relaxed text-white/95 min-h-[3.5em]">
             {displayedText}
             <TypingCursor visible={isTyping} />
           </p>
