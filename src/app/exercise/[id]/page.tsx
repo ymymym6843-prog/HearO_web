@@ -333,6 +333,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
       if (event.type === 'DIALOGUE_COMPLETE') {
         // 대화 완료 시 전환 시작
         startTransition('exercise', { duration: 1000 });
+        // 애니메이션 중지 → Kalidokit (사용자 포즈 인식) 활성화
+        setAnimationPreset('none');
       } else if (event.type === 'TRANSITION_COMPLETE') {
         // 전환 완료 시 카운트다운 시작
         handleStartCountdown();
