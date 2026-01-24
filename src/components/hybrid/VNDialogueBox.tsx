@@ -413,26 +413,78 @@ export function VNDialogueBox({
           </div>
         </motion.div>
 
-        {/* Glassmorphism 대화창 */}
+        {/* Glassmorphism 대화창 - Enhanced */}
         <div
-          className="vn-dialogue-box relative w-full rounded-2xl p-5 sm:p-6"
+          className="vn-dialogue-box relative w-full rounded-2xl p-5 sm:p-6 overflow-hidden"
           style={{
-            background: 'rgba(15, 15, 25, 0.85)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: `1px solid rgba(255, 255, 255, 0.1)`,
+            background: `linear-gradient(135deg,
+              rgba(20, 20, 35, 0.92) 0%,
+              rgba(15, 15, 25, 0.88) 50%,
+              rgba(20, 20, 35, 0.92) 100%)`,
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: `1px solid rgba(255, 255, 255, 0.12)`,
             boxShadow: `
-              0 8px 32px rgba(0, 0, 0, 0.5),
-              0 0 60px ${npc.color}15,
-              inset 0 1px 0 rgba(255, 255, 255, 0.05)
+              0 8px 32px rgba(0, 0, 0, 0.6),
+              0 0 80px ${npc.color}20,
+              0 0 120px ${npc.color}10,
+              inset 0 1px 0 rgba(255, 255, 255, 0.08),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.2)
             `,
           }}
         >
-          {/* 상단 하이라이트 라인 */}
-          <div
-            className="absolute top-0 left-4 sm:left-8 right-4 sm:right-8 h-px"
+          {/* Animated Border Glow */}
+          <motion.div
+            className="absolute inset-0 rounded-2xl pointer-events-none"
+            animate={{
+              boxShadow: [
+                `inset 0 0 30px ${npc.color}15, 0 0 20px ${npc.color}10`,
+                `inset 0 0 40px ${npc.color}25, 0 0 30px ${npc.color}15`,
+                `inset 0 0 30px ${npc.color}15, 0 0 20px ${npc.color}10`,
+              ],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Shimmer Effect */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
             style={{
-              background: `linear-gradient(90deg, transparent, ${npc.color}60, transparent)`,
+              background: `linear-gradient(105deg,
+                transparent 40%,
+                rgba(255, 255, 255, 0.03) 45%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 255, 255, 0.03) 55%,
+                transparent 60%)`,
+              backgroundSize: '200% 100%',
+            }}
+            animate={{
+              backgroundPosition: ['200% 0%', '-200% 0%'],
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+          />
+
+          {/* 상단 하이라이트 라인 - Enhanced */}
+          <div
+            className="absolute top-0 left-0 right-0 h-px"
+            style={{
+              background: `linear-gradient(90deg,
+                transparent 5%,
+                ${npc.color}40 20%,
+                ${npc.color}80 50%,
+                ${npc.color}40 80%,
+                transparent 95%)`,
+            }}
+          />
+
+          {/* 좌측 하이라이트 */}
+          <div
+            className="absolute top-0 left-0 bottom-0 w-px"
+            style={{
+              background: `linear-gradient(180deg,
+                ${npc.color}60,
+                rgba(255, 255, 255, 0.1) 50%,
+                transparent)`,
             }}
           />
 

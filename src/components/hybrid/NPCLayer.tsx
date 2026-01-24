@@ -64,17 +64,32 @@ const exitAnimations = {
 const enterAnimations = {
   initial: {
     opacity: 0,
-    y: 100,
-    scale: 0.9,
+    y: 150,
+    scale: 0.85,
+    rotate: -3,
   },
   animate: {
     opacity: 1,
     y: 0,
     scale: 1,
+    rotate: 0,
     transition: {
-      duration: 0.7,
-      ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number], // bounce easing (overshoot)
+      duration: 0.8,
+      ease: [0.175, 0.885, 0.32, 1.275] as [number, number, number, number], // stronger bounce overshoot
+      opacity: { duration: 0.4 },
+      rotate: { duration: 0.6, ease: 'easeOut' },
     },
+  },
+};
+
+// Idle breathing 애니메이션
+const idleBreathingAnimation = {
+  y: [0, -5, 0],
+  scale: [1, 1.01, 1],
+  transition: {
+    duration: 3.5,
+    repeat: Infinity,
+    ease: 'easeInOut' as const,
   },
 };
 
@@ -90,6 +105,7 @@ export function NPCLayer({
 }: NPCLayerProps) {
   const { transitionConfig } = usePhaseStore();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [hasEntered, setHasEntered] = useState(false);
 
   // NPC 정보 가져오기
   const npc = npcId
@@ -144,8 +160,17 @@ export function NPCLayer({
           height: `${effectiveSize}vh`,
         }}
         initial={{ ...enterAnimations.initial, x: xOffset }}
-        animate={{ ...enterAnimations.animate, x: xOffset }}
+        animate={
+          hasEntered
+            ? { ...enterAnimations.animate, x: xOffset, ...idleBreathingAnimation }
+            : { ...enterAnimations.animate, x: xOffset }
+        }
         exit={exitAnimation.exit}
+        onAnimationComplete={() => {
+          if (!hasEntered) {
+            setHasEntered(true);
+          }
+        }}
       >
         {/* NPC 이미지 컨테이너 */}
         <div
@@ -191,22 +216,64 @@ export function NPCLayer({
             priority
           />
 
-          {/* 캐릭터 하이라이트 효과 (idle animation) */}
+          {/* 캐릭터 하이라이트 효과 (idle animation) - Enhanced */}
           {imageLoaded && (
-            <motion.div
-              className="absolute inset-0 pointer-events-none"
-              animate={{
-                opacity: [0, 0.15, 0],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-              style={{
-                background: `radial-gradient(ellipse at center bottom, ${npc.color}30, transparent 60%)`,
-              }}
-            />
+            <>
+              {/* 바닥 그림자/착지 효과 */}
+              <motion.div
+                className="absolute -bottom-4 left-1/2 -translate-x-1/2 pointer-events-none"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{
+                  scale: [1, 1.05, 1],
+                  opacity: [0.4, 0.6, 0.4],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: 0.5,
+                }}
+                style={{
+                  width: '80%',
+                  height: '30px',
+                  background: `radial-gradient(ellipse at center, ${npc.color}50 0%, ${npc.color}20 40%, transparent 70%)`,
+                  filter: 'blur(8px)',
+                }}
+              />
+
+              {/* 후광 효과 */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                animate={{
+                  opacity: [0.08, 0.18, 0.08],
+                }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+                style={{
+                  background: `radial-gradient(ellipse at center 70%, ${npc.color}40 0%, ${npc.color}10 30%, transparent 60%)`,
+                }}
+              />
+
+              {/* 상단 림라이트 효과 */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                animate={{
+                  opacity: [0.05, 0.12, 0.05],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: 1,
+                }}
+                style={{
+                  background: `linear-gradient(180deg, ${npc.color}20 0%, transparent 30%)`,
+                }}
+              />
+            </>
           )}
 
           {/* 빛 효과 (전환 중) */}
