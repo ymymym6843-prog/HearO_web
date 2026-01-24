@@ -44,3 +44,6 @@ coverage/
 
 # Misc
 *.log
+
+# Backups
+public/images/worldviews/backups/
