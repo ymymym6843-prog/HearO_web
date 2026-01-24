@@ -226,6 +226,21 @@
 
 ## Recent Changes (2026-01-24)
 
+### Exercise Page HybridScene Integration (NEW)
+1. 운동 페이지에 HybridScene 컴포넌트 통합
+   - 4단계 Phase 시스템: intro → transition → exercise → epilogue
+   - intro phase: 2D NPC + VN 대화창으로 운동 소개
+   - transition phase: 2D→3D 전환 애니메이션
+   - exercise phase: 3D VRM + MediaPipe 운동 감지
+2. 운동별 인트로 대화 시퀀스 (`src/constants/exerciseDialogues.ts`)
+   - 세계관별 맞춤형 대사 템플릿 (6 세계관)
+   - 운동 시작 전 NPC 격려 대화
+   - 운동 완료 후 성과별 피드백 대화
+3. Phase 전환 로직
+   - VN 대화 완료 시 자동 전환
+   - 스킵 버튼으로 바로 운동 시작 가능
+   - 운동 완료 후 intro로 돌아가 재시도 가능
+
 ### Panorama Background System
 1. 세계관별 파노라마 배경 (각 20개 이미지)
    - `public/images/worldviews/backgrounds/{worldview}/{worldview}01.png` ~ `{worldview}20.png`
@@ -367,4 +382,4 @@ public/
 
 ---
 
-*Last updated: 2026-01-24 (Panorama backgrounds + Code quality fixes)*
+*Last updated: 2026-01-24 (HybridScene VN intro + Panorama backgrounds + Code quality fixes)*
