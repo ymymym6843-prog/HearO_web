@@ -72,6 +72,10 @@ export function VRMCharacter({
   // Scene에 추가된 VRM 추적 (cleanup용)
   const addedToSceneRef = useRef<VRM | null>(null);
 
+  // 중복 로딩 방지 플래그
+  const isLoadingRef = useRef(false);
+  const loadedModelUrlRef = useRef<string | null>(null);
+
   // Utonics 스타일 Kalidokit 훅 사용
   // VRM이 로드된 후에만 활성화 (VRMA 애니메이션 재생 중에는 비활성화)
   const { isActive, frameCount, syncQuality, handSyncActive } = useKalidokit({
@@ -120,8 +124,19 @@ export function VRMCharacter({
     }
   }, [expression, loadedVRM]);
 
-  // VRM 모델 로드
+  // VRM 모델 로드 (중복 로딩 방지)
   useEffect(() => {
+    // 이미 같은 모델이 로드되었거나 로딩 중이면 스킵
+    if (loadedModelUrlRef.current === modelUrl && loadedVRM) {
+      console.log('[VRMCharacter] Already loaded, skipping:', modelUrl);
+      return;
+    }
+    if (isLoadingRef.current) {
+      console.log('[VRMCharacter] Already loading, skipping');
+      return;
+    }
+
+    isLoadingRef.current = true;
     setLoadError(null);
     setIsLoading(true);
     setLoadProgress(0);
@@ -173,6 +188,10 @@ export function VRMCharacter({
         setIsLoading(false);
         setLoadProgress(100);
 
+        // 로딩 완료 플래그 업데이트
+        isLoadingRef.current = false;
+        loadedModelUrlRef.current = modelUrl;
+
         console.log('[VRMCharacter] VRM loaded successfully (with animation support)');
         onLoaded?.(vrm);
       },
@@ -189,6 +208,7 @@ export function VRMCharacter({
           : '모델을 불러올 수 없습니다';
         setLoadError(errorMessage);
         setIsLoading(false);
+        isLoadingRef.current = false;
         onError?.(error instanceof Error ? error : new Error(String(error)));
       }
     );
@@ -204,8 +224,12 @@ export function VRMCharacter({
       setVRM(null);
       setLoaded(false);
       setLoadedVRM(null);
+      // 로딩 플래그 리셋
+      isLoadingRef.current = false;
+      loadedModelUrlRef.current = null;
     };
-  }, [modelUrl, scene, setVRM, setLoaded, onLoaded, onError, disposeAnimation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelUrl]); // modelUrl만 의존성으로 - 나머지는 안정적이므로 제외
 
   // 디버그 카운터
   const debugFrameRef = useRef(0);

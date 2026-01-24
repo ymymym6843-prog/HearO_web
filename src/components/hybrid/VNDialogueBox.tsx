@@ -32,12 +32,16 @@ interface VNDialogueBoxProps {
   onTransitionRequest?: () => void;
   /** 대화 완료 콜백 */
   onDialogueComplete?: () => void;
+  /** 전체 스킵 콜백 (스킵해도 스토리는 계속 생성됨을 알림) */
+  onSkipAll?: () => void;
   /** 타이핑 속도 (ms/char) */
   typingSpeed?: number;
   /** TTS 활성화 */
   enableTTS?: boolean;
   /** 아바타 표시 여부 (기본: false, NPCLayer와 함께 사용 시 false) */
   showAvatar?: boolean;
+  /** 스킵 버튼 표시 여부 (기본: true) */
+  showSkipButton?: boolean;
 }
 
 // ============================================
@@ -136,9 +140,11 @@ export function VNDialogueBox({
   worldview,
   onTransitionRequest,
   onDialogueComplete,
+  onSkipAll,
   typingSpeed = DEFAULT_TYPING_SPEED,
   enableTTS = false,
   showAvatar = false, // 기본적으로 아바타 숨김 (NPCLayer와 함께 사용)
+  showSkipButton = true,
 }: VNDialogueBoxProps) {
   const dialogue = useDialogue();
   const { advanceDialogue, endDialogue } = usePhaseStore();
@@ -248,6 +254,34 @@ export function VNDialogueBox({
   }, [isTyping, isSpeaking, skipTyping, advanceDialogue, endDialogue, onDialogueComplete, currentEntry, onTransitionRequest]);
 
   /**
+   * 전체 스킵 핸들러
+   * 대화를 건너뛰고 바로 운동으로 전환
+   * 백그라운드에서 스토리 생성은 계속됨
+   */
+  const handleSkipAll = useCallback(() => {
+    // 타이핑 중지
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+
+    // TTS 중지
+    if (isSpeaking) {
+      ttsService.stop();
+      setIsSpeaking(false);
+    }
+
+    // 대화 종료
+    endDialogue();
+
+    // 스킵 콜백 호출 (백그라운드 스토리 생성 유지 알림)
+    onSkipAll?.();
+
+    // 전환 요청
+    onTransitionRequest?.();
+  }, [isSpeaking, endDialogue, onSkipAll, onTransitionRequest]);
+
+  /**
    * 클릭/탭 핸들러
    */
   const handleTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -309,78 +343,145 @@ export function VNDialogueBox({
   return (
     <motion.div
       ref={containerRef}
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 30 }}
-      transition={{ duration: 0.3 }}
-      className="absolute bottom-0 left-0 right-0 z-20 p-4 sm:p-6"
+      exit={{ opacity: 0, y: 50 }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="fixed bottom-0 left-0 right-0 z-20 p-4 pb-6"
       onClick={handleTap}
       onTouchEnd={handleTap}
     >
-      {/* 반투명 배경 */}
-      <div
-        className="absolute inset-0 backdrop-blur-sm"
-        style={{
-          background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)',
-        }}
-      />
-
-      {/* 대화창 컨테이너 */}
-      <div className="relative flex items-end gap-4 max-w-3xl mx-auto">
-        {/* NPC 아바타 (showAvatar가 true일 때만 표시) */}
-        {showAvatar && (
-          <NPCAvatar
-            npc={npc}
-            emotion={emotion}
-            worldview={worldview}
-            isSpeaking={isSpeaking}
-          />
+      {/* 대화창 영역 (전체 너비) */}
+      <div className="relative w-full max-w-6xl mx-auto">
+        {/* Skip Button - 대화창 우상단 */}
+        {showSkipButton && (
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSkipAll();
+            }}
+            className="absolute -top-12 right-4 sm:right-8 px-4 py-2 rounded-xl z-10
+                       flex items-center gap-2 transition-all duration-200
+                       hover:scale-105 active:scale-95"
+            style={{
+              background: 'rgba(30, 30, 40, 0.9)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            {/* Play 아이콘 */}
+            <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            <span className="text-sm text-gray-300 font-medium">바로 시작</span>
+          </motion.button>
         )}
 
-        {/* 대화 내용 */}
-        <div
-          className={`flex-1 rounded-2xl p-4 sm:p-5 border-2 ${showAvatar ? 'rounded-bl-sm' : ''}`}
+        {/* Name Plate - 대화창 좌상단에 별도 분리 */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
+          className="absolute -top-12 left-4 sm:left-8 px-5 py-2 rounded-t-xl z-10"
           style={{
-            backgroundColor: 'rgba(20, 20, 30, 0.95)',
-            borderColor: npc.color + '60',
-            boxShadow: `0 0 30px ${npc.color}20`,
+            background: `linear-gradient(135deg, ${npc.color} 0%, ${npc.color}CC 100%)`,
+            boxShadow: `0 -4px 20px ${npc.color}40`,
           }}
         >
-          {/* NPC 이름 */}
-          <div className="flex items-center gap-2 mb-3">
-            {/* 말하는 중 인디케이터 (아바타 없을 때) */}
-            {!showAvatar && isSpeaking && (
+          <div className="flex items-center gap-2">
+            {/* 말하는 중 인디케이터 */}
+            {isSpeaking && (
               <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 0.5, repeat: Infinity }}
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: npc.color }}
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+                className="w-2.5 h-2.5 rounded-full bg-white/90"
               />
             )}
-            <span className="font-bold text-base" style={{ color: npc.color }}>
+            <span className="font-bold text-white text-sm sm:text-base drop-shadow-md">
               {npc.name}
             </span>
             {npc.title && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-white/70 hidden sm:inline">
                 {npc.title}
               </span>
             )}
           </div>
+        </motion.div>
+
+        {/* Glassmorphism 대화창 */}
+        <div
+          className="vn-dialogue-box relative w-full rounded-2xl p-5 sm:p-6"
+          style={{
+            background: 'rgba(15, 15, 25, 0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: `1px solid rgba(255, 255, 255, 0.1)`,
+            boxShadow: `
+              0 8px 32px rgba(0, 0, 0, 0.5),
+              0 0 60px ${npc.color}15,
+              inset 0 1px 0 rgba(255, 255, 255, 0.05)
+            `,
+          }}
+        >
+          {/* 상단 하이라이트 라인 */}
+          <div
+            className="absolute top-0 left-4 sm:left-8 right-4 sm:right-8 h-px"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${npc.color}60, transparent)`,
+            }}
+          />
 
           {/* 대사 텍스트 */}
-          <p className="text-base sm:text-lg leading-relaxed text-white/95 min-h-[3.5em]">
+          <p className="text-base sm:text-lg md:text-xl leading-relaxed text-white/95 min-h-[4em] sm:min-h-[4.5em]">
             {displayedText}
             <TypingCursor visible={isTyping} />
           </p>
 
-          {/* 진행 안내 */}
-          <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
-            <span>
-              {dialogue.currentIndex + 1} / {dialogue.entries.length}
-            </span>
-            <span className={isComplete ? 'animate-pulse' : 'opacity-50'}>
-              {isTyping ? '클릭하여 스킵' : '클릭하여 계속'}
-            </span>
+          {/* 하단 UI 영역 */}
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+            {/* 진행 상황 */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 font-mono">
+                {String(dialogue.currentIndex + 1).padStart(2, '0')} / {String(dialogue.entries.length).padStart(2, '0')}
+              </span>
+              {/* 진행 바 */}
+              <div className="w-20 sm:w-32 h-1 bg-white/10 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: npc.color }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${((dialogue.currentIndex + 1) / dialogue.entries.length) * 100}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            </div>
+
+            {/* 계속 안내 */}
+            <motion.div
+              animate={isComplete ? { opacity: [0.5, 1, 0.5] } : { opacity: 0.5 }}
+              transition={isComplete ? { duration: 1.5, repeat: Infinity } : {}}
+              className="flex items-center gap-2 text-xs text-gray-400"
+            >
+              <span className="hidden sm:inline">
+                {isTyping ? '클릭하여 스킵' : '클릭하여 계속'}
+              </span>
+              {/* 계속 화살표 아이콘 */}
+              <motion.svg
+                animate={isComplete ? { x: [0, 4, 0] } : {}}
+                transition={{ duration: 0.8, repeat: Infinity }}
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </motion.svg>
+            </motion.div>
           </div>
         </div>
       </div>

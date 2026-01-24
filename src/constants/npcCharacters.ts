@@ -251,13 +251,13 @@ export function getMainNPC(worldview: WorldviewType): NPCCharacter {
   return NPC_CHARACTERS[worldview][mainNPCs[worldview]];
 }
 
-// NPC 이미지 경로 반환
+// NPC 이미지 경로 반환 (투명 배경 PNG 사용)
 export function getNPCImagePath(
   worldview: WorldviewType,
   npcId: string,
   emotion: NPCEmotion = 'normal'
 ): string {
-  return `/assets/prerendered/npc/${worldview}/${npcId}/${emotion}.jpg`;
+  return `/assets/prerendered/npc/${worldview}/${npcId}/${emotion}.png`;
 }
 
 // 랜덤 NPC 반환 (나레이터 제외)

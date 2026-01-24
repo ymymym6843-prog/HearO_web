@@ -129,34 +129,7 @@ export default function AccessibilitySettingsPage() {
     setIsLoaded(true);
   }, []);
 
-  // 설정 변경 핸들러
-  const updateSetting = useCallback(<K extends keyof AccessibilitySettings>(
-    key: K,
-    value: AccessibilitySettings[K]
-  ) => {
-    setSettings((prev) => {
-      const newSettings = { ...prev, [key]: value };
-
-      // 로컬스토리지 저장
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-      } catch (error) {
-        console.error('Failed to save accessibility settings:', error);
-      }
-
-      // CSS 변수 업데이트
-      applySettings(newSettings);
-
-      // 햅틱 피드백
-      if (hapticSupported && newSettings.hapticFeedback) {
-        hapticService.tap();
-      }
-
-      return newSettings;
-    });
-  }, [hapticSupported]);
-
-  // 설정 적용
+  // 설정 적용 (CSS 변수 및 클래스 업데이트)
   const applySettings = useCallback((settings: AccessibilitySettings) => {
     const root = document.documentElement;
 
@@ -191,6 +164,33 @@ export default function AccessibilitySettingsPage() {
     // 햅틱 서비스 설정
     hapticService.setEnabled(settings.hapticFeedback);
   }, []);
+
+  // 설정 변경 핸들러
+  const updateSetting = useCallback(<K extends keyof AccessibilitySettings>(
+    key: K,
+    value: AccessibilitySettings[K]
+  ) => {
+    setSettings((prev) => {
+      const newSettings = { ...prev, [key]: value };
+
+      // 로컬스토리지 저장
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+      } catch (error) {
+        console.error('Failed to save accessibility settings:', error);
+      }
+
+      // CSS 변수 업데이트
+      applySettings(newSettings);
+
+      // 햅틱 피드백
+      if (hapticSupported && newSettings.hapticFeedback) {
+        hapticService.tap();
+      }
+
+      return newSettings;
+    });
+  }, [hapticSupported, applySettings]);
 
   // 초기 설정 적용
   useEffect(() => {

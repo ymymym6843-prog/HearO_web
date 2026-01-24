@@ -226,7 +226,38 @@
 
 ## Recent Changes (2026-01-24)
 
-### Exercise Page HybridScene Integration (NEW)
+### Scene Settings Panel 시스템 (NEW)
+1. 3D 씬 설정 패널 (`src/components/three/SceneSettingsPanel.tsx`)
+   - 조명 설정: 주변광, 방향광, 환경광 강도 슬라이더
+   - 조명 프리셋: 어둡게, 기본, 밝게
+   - 카메라 앵글 프리셋: 정면, 좌측, 우측, 후면, 위
+   - 씬 헬퍼: 그리드, 축 표시 토글
+   - 배경 랜덤 변경: 🎲 주사위 버튼 (메이플스토리 스타일)
+2. 씬 설정 훅 (`src/hooks/useSceneSettings.ts`)
+   - Zustand 기반 상태 관리
+   - 조명, 카메라, 헬퍼 설정 저장
+3. VRMScene 카메라 앵글 시스템 (`src/components/hybrid/VRMScene.tsx`)
+   - CAMERA_PRESETS 적용 (정면, 좌측, 우측, 후면, 위)
+   - 부드러운 카메라 전환 (lerp 애니메이션)
+4. HybridScene 배경 컨트롤 노출 (`exposeBackgroundControl` prop)
+   - 외부에서 배경 랜덤 변경 함수 접근 가능
+   - exercise 페이지 SceneSettingsPanel 연동
+
+### Skybox 회전 애니메이션 (NEW)
+1. SkyboxBackground 회전 기능 (`src/components/hybrid/SkyboxBackground.tsx`)
+   - rotationSpeed prop (기본: 0.0005)
+   - Lerp 기반 부드러운 회전 보간
+   - 운동 중 방해되지 않는 느린 속도
+
+### VN 스타일 UI 개선 (NEW)
+1. 스킵 버튼 개선 (`src/components/hybrid/VNDialogueBox.tsx`)
+   - "스킵" → "바로 시작" 텍스트 변경
+   - Fast Forward 아이콘 → Play 아이콘
+   - 중복 스킵 버튼 제거
+2. NPC 미니 아바타 위치 조정 (`src/components/hybrid/NPCMiniAvatar.tsx`)
+   - bottom-24 → bottom-36으로 변경 (HUD 가림 방지)
+
+### Exercise Page HybridScene Integration
 1. 운동 페이지에 HybridScene 컴포넌트 통합
    - 4단계 Phase 시스템: intro → transition → exercise → epilogue
    - intro phase: 2D NPC + VN 대화창으로 운동 소개
@@ -240,6 +271,9 @@
    - VN 대화 완료 시 자동 전환
    - 스킵 버튼으로 바로 운동 시작 가능
    - 운동 완료 후 intro로 돌아가 재시도 가능
+4. Scene Settings Panel 통합
+   - exercise phase에서 씬 설정 패널 표시
+   - 조명, 카메라, 배경 실시간 조절 가능
 
 ### Panorama Background System
 1. 세계관별 파노라마 배경 (각 20개 이미지)
@@ -255,7 +289,7 @@
 4. HybridScene 통합
    - `usePanoramaBg` prop으로 파노라마 배경 사용 여부 설정
    - `showBgRandomizer` prop으로 랜덤 버튼 표시 설정
-   - intro phase에서만 랜덤 버튼 표시
+   - intro/exercise phase 모두에서 배경 랜덤 버튼 사용 가능
 
 ### HearO-v2 포팅 (Phase 1 완료)
 1. ROM 측정 서비스 구현 (`src/services/medical/romService.ts`)
@@ -306,6 +340,10 @@
 11. Fixed cascading render issues in exercise pages (useEffect setState)
 12. Fixed Math.random during render in result page (use seeded random)
 13. Fixed `detectHands` recursive reference in hand exercise page
+14. Fixed "image-outline" icon not found error in SceneSettingsPanel (→ camera-outline)
+15. Fixed background randomizer not working (separate useBackground hooks issue)
+16. Fixed camera angle buttons not working in VRMScene (CAMERA_PRESETS 미적용 수정)
+17. Fixed VRM mini avatar covering bottom HUD (position 조정)
 
 ### New Features (Earlier)
 1. Worldview-specific typing speeds
@@ -356,16 +394,30 @@ src/
 ├── app/                    # Next.js pages
 ├── components/
 │   ├── hybrid/            # 2D/3D hybrid components
+│   │   ├── HybridScene.tsx        # 메인 하이브리드 씬
+│   │   ├── VRMScene.tsx           # 3D VRM 렌더링
+│   │   ├── SkyboxBackground.tsx   # 360도 스카이박스
+│   │   ├── NPCLayer.tsx           # 2D NPC 레이어
+│   │   ├── NPCMiniAvatar.tsx      # 미니 아바타 + 말풍선
+│   │   ├── VNDialogueBox.tsx      # VN 스타일 대화창
+│   │   └── TransitionOverlay.tsx  # 전환 오버레이
 │   ├── themed/            # Worldview-themed components
 │   ├── three/             # Three.js components
-│   └── ui/                # UI components (BackgroundRandomizer)
+│   │   ├── VRMCharacter.tsx       # VRM 캐릭터 로더
+│   │   └── SceneSettingsPanel.tsx # 씬 설정 패널 (NEW)
+│   └── ui/                # UI components
+│       └── BackgroundRandomizer.tsx
 ├── constants/             # Theme, exercise configs
 ├── contexts/              # React contexts
-├── hooks/                 # Custom hooks (useBackground, useKalidokit, etc.)
+├── hooks/                 # Custom hooks
+│   ├── useBackground.ts   # 배경 관리 훅
+│   ├── useSceneSettings.ts # 씬 설정 훅 (NEW)
+│   └── useKalidokit.ts    # Kalidokit 연동
 ├── lib/                   # Utilities (kalidokit, logger)
 ├── services/              # Business logic
 │   └── tts/              # TTS providers
 ├── types/                 # TypeScript definitions
+│   └── scene.ts          # 씬 설정 타입 (LightingSettings, CameraAngle 등)
 └── workers/              # Web workers
 
 public/
@@ -382,4 +434,4 @@ public/
 
 ---
 
-*Last updated: 2026-01-24 (HybridScene VN intro + Panorama backgrounds + Code quality fixes)*
+*Last updated: 2026-01-24 (Scene Settings Panel + Skybox 회전 + VN UI 개선 + 버그 수정)*

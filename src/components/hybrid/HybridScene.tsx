@@ -26,6 +26,7 @@ import { usePhaseStore, useLayerVisibility, useIsTransitioning, useTransitionPro
 import type { WorldviewType } from '@/types/vrm';
 import type { PhaseType, TransitionConfig } from '@/types/phase';
 import type { WorldviewId } from '@/constants/worldviews';
+import type { LightingSettings, CameraAngle, SceneHelpers } from '@/types/scene';
 
 // Components
 import { SkyboxBackground } from './SkyboxBackground';
@@ -34,6 +35,7 @@ import { NPCLayer } from './NPCLayer';
 import { VNDialogueBox } from './VNDialogueBox';
 import { TransitionOverlay } from './TransitionOverlay';
 import { BackgroundRandomizerCompact } from '@/components/ui/BackgroundRandomizer';
+import { NPCMiniAvatar, type NPCMessage } from './NPCMiniAvatar';
 
 // Hooks
 import { useBackground } from '@/hooks/useBackground';
@@ -63,6 +65,26 @@ interface HybridSceneProps {
   onVRMLoaded?: () => void;
   /** 배경 변경 콜백 */
   onBackgroundChange?: (url: string, index: number) => void;
+  /** NPC 미니 아바타 메시지 (운동 중 피드백) */
+  npcMessage?: NPCMessage | null;
+  /** NPC 메시지 닫힘 콜백 */
+  onNPCMessageClose?: () => void;
+  /** 미니 아바타 항상 표시 (운동 중) */
+  showMiniAvatar?: boolean;
+  /** 대화 스킵 콜백 (백그라운드 스토리 생성 유지) */
+  onDialogueSkip?: () => void;
+  /** 배경 컨트롤 노출 콜백 (외부에서 배경 제어 가능하게) */
+  exposeBackgroundControl?: (control: {
+    randomBackground: () => void;
+    currentIndex: number;
+    totalCount: number;
+  }) => void;
+  /** 3D 씬 조명 설정 */
+  lightingSettings?: LightingSettings;
+  /** 3D 씬 카메라 앵글 */
+  cameraAngle?: CameraAngle;
+  /** 3D 씬 헬퍼 (그리드, 축) */
+  sceneHelpers?: SceneHelpers;
   /** className */
   className?: string;
 }
@@ -82,6 +104,14 @@ export function HybridScene({
   onPhaseChange,
   onVRMLoaded,
   onBackgroundChange,
+  npcMessage,
+  onNPCMessageClose,
+  showMiniAvatar = false,
+  onDialogueSkip,
+  exposeBackgroundControl,
+  lightingSettings,
+  cameraAngle,
+  sceneHelpers,
   className = '',
 }: HybridSceneProps) {
   const { current: currentPhase, setPhase, startTransition } = usePhaseStore();
@@ -89,13 +119,20 @@ export function HybridScene({
   const isTransitioning = useIsTransitioning();
   const transitionProgress = useTransitionProgress();
 
+  // 디버깅: Phase와 Layer 상태 로깅
+  useEffect(() => {
+    console.log(`[HybridScene] phase=${currentPhase}, transitioning=${isTransitioning}, npc2D=${layers.npc2D}, vrm3D=${layers.vrm3D}`);
+  }, [currentPhase, isTransitioning, layers.npc2D, layers.vrm3D]);
+
   const [isVRMLoaded, setIsVRMLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasInitializedPhase = useRef(false);
 
   // 파노라마 배경 관리
   const {
     backgroundUrl: panoramaBgUrl,
     currentIndex: bgIndex,
+    totalCount: bgTotal,
     randomBackground,
   } = useBackground({
     worldviewId: worldview as WorldviewId,
@@ -103,14 +140,32 @@ export function HybridScene({
     persistPreference: true,
   });
 
-  // 초기 Phase 설정
+  // 배경 컨트롤 외부 노출
   useEffect(() => {
-    setPhase(initialPhase);
+    if (exposeBackgroundControl) {
+      exposeBackgroundControl({
+        randomBackground,
+        currentIndex: bgIndex,
+        totalCount: bgTotal,
+      });
+    }
+  }, [exposeBackgroundControl, randomBackground, bgIndex, bgTotal]);
+
+  // 초기 Phase 설정 (마운트 시 1회만 실행)
+  useEffect(() => {
+    if (!hasInitializedPhase.current) {
+      setPhase(initialPhase);
+      hasInitializedPhase.current = true;
+    }
   }, [initialPhase, setPhase]);
 
-  // Phase 변경 콜백
+  // Phase 변경 콜백 - currentPhase 변경 시에만 호출
+  const prevPhaseRef = useRef<PhaseType | null>(null);
   useEffect(() => {
-    onPhaseChange?.(currentPhase);
+    if (prevPhaseRef.current !== currentPhase) {
+      prevPhaseRef.current = currentPhase;
+      onPhaseChange?.(currentPhase);
+    }
   }, [currentPhase, onPhaseChange]);
 
   // 배경 변경 콜백
@@ -148,7 +203,7 @@ export function HybridScene({
       {/* Layer 0: 스카이박스 + 3D VRM (Three.js Canvas) */}
       <div className="absolute inset-0 z-0">
         <Canvas
-          camera={{ position: [0, 1.5, 3], fov: 50 }}
+          camera={{ position: [0, 0.9, 2.8], fov: 50 }}
           gl={{
             powerPreference: 'default',
             antialias: true,
@@ -171,15 +226,39 @@ export function HybridScene({
             visible={layers.vrm3D}
             onLoaded={handleVRMLoaded}
             transitionProgress={isTransitioning ? transitionProgress : 1}
+            lightingSettings={lightingSettings}
+            cameraAngle={cameraAngle}
+            sceneHelpers={sceneHelpers}
           />
         </Canvas>
       </div>
 
-      {/* Layer 2: 2D NPC 이미지 */}
+      {/* Layer 1.5: 배경 오버레이 (intro phase에서 배경 디테일 감소) */}
+      <AnimatePresence>
+        {currentPhase === 'intro' && layers.npc2D && (
+          <motion.div
+            key="bg-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 z-[1] pointer-events-none"
+            style={{
+              background: 'rgba(0, 0, 0, 0.35)',
+              backdropFilter: 'blur(3px)',
+              WebkitBackdropFilter: 'blur(3px)',
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Layer 2: 2D NPC 이미지 - phase에 따라 레이아웃 변경 */}
+      {/* DEBUG: npc2D={layers.npc2D}, phase={currentPhase} */}
       <AnimatePresence>
         {layers.npc2D && (
           <NPCLayer
             worldview={worldview}
+            layoutMode={currentPhase === 'intro' ? 'intro' : 'exercise'}
             isExiting={isTransitioning && currentPhase === 'transition'}
             transitionProgress={transitionProgress}
           />
@@ -191,10 +270,23 @@ export function HybridScene({
         {layers.vnDialogue && (
           <VNDialogueBox
             worldview={worldview}
-            onTransitionRequest={() => handleTransition('transition')}
+            onTransitionRequest={() => handleTransition('exercise')}
+            onSkipAll={onDialogueSkip}
           />
         )}
       </AnimatePresence>
+
+      {/* Layer 3.5: NPC 미니 아바타 (운동 중 피드백) */}
+      {/* exercise phase에서는 원형 미니 아바타로 항상 표시 */}
+      {(currentPhase === 'exercise' || showMiniAvatar) && (
+        <NPCMiniAvatar
+          worldview={worldview}
+          message={npcMessage}
+          onMessageClose={onNPCMessageClose}
+          position="bottom-left"
+          alwaysShowAvatar={currentPhase === 'exercise' || showMiniAvatar}
+        />
+      )}
 
       {/* Layer 4: 자식 컴포넌트 (운동 UI 등) */}
       {children}
@@ -209,19 +301,15 @@ export function HybridScene({
         )}
       </AnimatePresence>
 
-      {/* PIP 카메라 뷰 (exercise phase에서만) */}
-      {layers.cameraPIP && (
-        <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-white/30 shadow-lg z-30">
-          {/* WebCamera 컴포넌트가 여기에 삽입됨 */}
-          <div className="w-full h-full bg-black/50 flex items-center justify-center">
-            <span className="text-white/50 text-xs">Camera</span>
-          </div>
-        </div>
-      )}
+      {/* PIP 카메라 뷰는 ExercisePage에서 WebCamera 컴포넌트로 직접 렌더링 */}
 
-      {/* 배경 랜덤 버튼 (intro phase에서만 표시) */}
-      {showBgRandomizer && usePanoramaBg && currentPhase === 'intro' && (
-        <div className="absolute top-4 right-4 z-20">
+      {/* 배경 랜덤 버튼 (intro, exercise phase에서 표시) */}
+      {showBgRandomizer && usePanoramaBg && (currentPhase === 'intro' || currentPhase === 'exercise') && (
+        <div className={`absolute z-20 ${
+          currentPhase === 'intro'
+            ? 'top-4 right-4'
+            : 'top-20 right-20'  /* exercise에서는 헤더 버튼들 아래 */
+        }`}>
           <BackgroundRandomizerCompact
             worldviewId={worldview as WorldviewId}
             onRandomize={randomBackground}

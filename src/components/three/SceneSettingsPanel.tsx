@@ -3,9 +3,11 @@
 /**
  * 3D 씬 설정 패널
  * Utonics 벤치마킹: 조명, 카메라 앵글, 헬퍼 설정 UI
+ * + 배경 랜덤 변경 기능 (메이플스토리 스타일)
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Icon } from '@/components/ui/Icon';
 import type {
   LightingPreset,
@@ -30,6 +32,10 @@ interface SceneSettingsPanelProps {
   helpers: SceneHelpers;
   onToggleGrid: () => void;
   onToggleAxes: () => void;
+  // 배경 (선택)
+  onRandomizeBackground?: () => void;
+  backgroundIndex?: number;
+  backgroundTotal?: number;
   // 리셋
   onReset: () => void;
   // UI 옵션
@@ -158,10 +164,26 @@ export function SceneSettingsPanel({
   helpers,
   onToggleGrid,
   onToggleAxes,
+  onRandomizeBackground,
+  backgroundIndex,
+  backgroundTotal = 20,
   onReset,
   className = '',
   compact = false,
 }: SceneSettingsPanelProps) {
+  // 배경 랜덤 버튼 애니메이션 상태
+  const [isDiceRolling, setIsDiceRolling] = useState(false);
+
+  const handleRandomizeBackground = useCallback(() => {
+    if (!onRandomizeBackground || isDiceRolling) return;
+
+    setIsDiceRolling(true);
+    onRandomizeBackground();
+
+    // 애니메이션 완료 후 상태 리셋
+    setTimeout(() => setIsDiceRolling(false), 600);
+  }, [onRandomizeBackground, isDiceRolling]);
+
   const lightingPresetLabels: Record<LightingPreset, string> = {
     dark: '어둡게',
     default: '기본',
@@ -288,6 +310,54 @@ export function SceneSettingsPanel({
           </button>
         </div>
       </CollapsibleSection>
+
+      {/* 배경 설정 (메이플스토리 스타일 랜덤 버튼) */}
+      {onRandomizeBackground && (
+        <CollapsibleSection title="배경" icon="camera-outline" defaultOpen={true}>
+          <div className="space-y-3">
+            {/* 현재 배경 인덱스 표시 */}
+            {backgroundIndex !== undefined && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/60">현재 배경</span>
+                <span className="text-white/80 tabular-nums">
+                  {backgroundIndex + 1} / {backgroundTotal}
+                </span>
+              </div>
+            )}
+
+            {/* 주사위 랜덤 버튼 (메이플스토리 스타일) */}
+            <motion.button
+              onClick={handleRandomizeBackground}
+              disabled={isDiceRolling}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg
+                         bg-gradient-to-r from-purple-500/20 to-pink-500/20
+                         border border-purple-500/30 hover:border-purple-500/50
+                         transition-all duration-200 disabled:opacity-50"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {/* 주사위 아이콘 with 회전 애니메이션 */}
+              <motion.span
+                className="text-2xl"
+                animate={isDiceRolling ? {
+                  rotate: [0, 360, 720],
+                  scale: [1, 1.2, 1],
+                } : {}}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              >
+                🎲
+              </motion.span>
+              <span className="text-sm font-medium text-white/90">
+                {isDiceRolling ? '굴리는 중...' : '배경 랜덤 변경'}
+              </span>
+            </motion.button>
+
+            <p className="text-[10px] text-white/40 text-center">
+              현재 세계관의 배경 중 랜덤 선택
+            </p>
+          </div>
+        </CollapsibleSection>
+      )}
     </div>
   );
 }

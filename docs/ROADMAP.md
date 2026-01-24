@@ -22,6 +22,10 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - **Last Updated**: 2026-01-24
 
 ### Recent Major Updates
+- **Scene Settings Panel**: 조명, 카메라, 배경 실시간 조절
+- **Skybox 회전 애니메이션**: 360도 배경 부드러운 회전
+- **VN 스타일 UI 개선**: 스킵 버튼, NPC 위치 조정
+- **카메라 앵글 프리셋**: 정면, 좌측, 우측, 후면, 위
 - HearO-v2 의료 기능 포팅 (Phase 1 완료)
 - 게이미피케이션 HUD 시스템
 - Recharts 기반 데이터 시각화

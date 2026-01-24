@@ -12,6 +12,11 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { VRMCharacter } from '@/components/three/VRMCharacter';
 import type { ExpressionState } from '@/services/vrmFeedbackService';
+import type { LightingSettings, CameraAngle, SceneHelpers } from '@/types/scene';
+import { CAMERA_PRESETS, LIGHTING_PRESETS } from '@/types/scene';
+
+// 초기 등장 애니메이션 URL
+const INITIAL_ANIMATION_URL = '/animations/Greeting.vrma';
 
 interface VRMSceneProps {
   /** VRM 모델 URL */
@@ -26,6 +31,14 @@ interface VRMSceneProps {
   animationUrl?: string | null;
   /** 표정 상태 */
   expression?: ExpressionState | null;
+  /** 초기 등장 애니메이션 재생 여부 (기본: true) */
+  playInitialAnimation?: boolean;
+  /** 조명 설정 */
+  lightingSettings?: LightingSettings;
+  /** 카메라 앵글 */
+  cameraAngle?: CameraAngle;
+  /** 씬 헬퍼 (그리드, 축) */
+  sceneHelpers?: SceneHelpers;
 }
 
 // 로딩 플레이스홀더
@@ -53,10 +66,33 @@ export function VRMScene({
   transitionProgress = 1,
   animationUrl,
   expression,
+  playInitialAnimation = true,
+  lightingSettings,
+  cameraAngle,
+  sceneHelpers,
 }: VRMSceneProps) {
+  // 조명 설정 (기본값 또는 커스텀)
+  const lighting = lightingSettings || LIGHTING_PRESETS.default;
   const groupRef = useRef<THREE.Group>(null);
   const [opacity, setOpacity] = useState(0);
   const { camera } = useThree();
+
+  // 초기 애니메이션 상태
+  const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string | null>(null);
+  const hasPlayedInitialAnimation = useRef(false);
+
+  // VRM이 한 번이라도 visible 되었는지 추적 (한 번 true가 되면 계속 마운트 유지)
+  const hasBeenVisibleRef = useRef(false);
+  const [shouldMount, setShouldMount] = useState(false);
+
+  // visible이 처음 true가 되면 마운트 활성화 (이후 계속 유지)
+  useEffect(() => {
+    if (visible && !hasBeenVisibleRef.current) {
+      hasBeenVisibleRef.current = true;
+      setShouldMount(true);
+      console.log('[VRMScene] VRM mount activated (first visible)');
+    }
+  }, [visible]);
 
   // 전환 애니메이션: 포탈 효과
   useEffect(() => {
@@ -68,7 +104,7 @@ export function VRMScene({
     }
   }, [visible, transitionProgress]);
 
-  // 스케일 및 위치 애니메이션
+  // 스케일 및 위치 애니메이션 (VRM 등장/퇴장)
   useFrame(() => {
     if (groupRef.current) {
       // 포탈 등장 효과: 작은 상태에서 커지면서 나타남
@@ -87,43 +123,99 @@ export function VRMScene({
     }
   });
 
-  // 카메라 전환 애니메이션
-  useEffect(() => {
-    if (visible && transitionProgress > 0.5) {
-      // exercise 모드로 전환 시 카메라 조정
-      const targetPosition = new THREE.Vector3(0, 1.5, 2.5);
-      camera.position.lerp(targetPosition, 0.05);
-    }
-  }, [visible, transitionProgress, camera]);
+  // 카메라 앵글 변경 시 위치 전환
+  const targetCameraRef = useRef<{ position: THREE.Vector3; target: THREE.Vector3 }>({
+    position: new THREE.Vector3(0, 0.9, 2.8),
+    target: new THREE.Vector3(0, 1.0, 0),
+  });
 
-  if (!visible && opacity <= 0.01) {
-    return null;
-  }
+  // cameraAngle prop에 따른 카메라 위치 업데이트
+  useEffect(() => {
+    if (cameraAngle && cameraAngle !== 'custom') {
+      const preset = CAMERA_PRESETS[cameraAngle];
+      if (preset) {
+        targetCameraRef.current = {
+          position: new THREE.Vector3(...preset.position),
+          target: new THREE.Vector3(...preset.target),
+        };
+        console.log(`[VRMScene] Camera angle changed to: ${cameraAngle}`, preset.position);
+      }
+    }
+  }, [cameraAngle]);
+
+  // 카메라 전환 애니메이션 (매 프레임)
+  useFrame(() => {
+    if (visible && transitionProgress > 0.5) {
+      // 목표 위치로 부드럽게 이동
+      camera.position.lerp(targetCameraRef.current.position, 0.05);
+      // 목표 지점 바라보기
+      camera.lookAt(targetCameraRef.current.target);
+    }
+  });
+
+  // 초기 등장 애니메이션 재생
+  useEffect(() => {
+    if (visible && playInitialAnimation && !hasPlayedInitialAnimation.current) {
+      hasPlayedInitialAnimation.current = true;
+      console.log('[VRMScene] Playing initial greeting animation');
+      setCurrentAnimationUrl(INITIAL_ANIMATION_URL);
+
+      // 애니메이션이 끝나면 URL 클리어 (1회 재생)
+      const timer = setTimeout(() => {
+        setCurrentAnimationUrl(null);
+      }, 3000); // Greeting 애니메이션 대략 3초
+
+      return () => clearTimeout(timer);
+    }
+  }, [visible, playInitialAnimation]);
+
+  // 외부 애니메이션 URL이 변경되면 적용
+  useEffect(() => {
+    if (animationUrl) {
+      setCurrentAnimationUrl(animationUrl);
+    }
+  }, [animationUrl]);
+
+  // 실제 재생할 애니메이션 URL (외부 > 현재)
+  const effectiveAnimationUrl = animationUrl || currentAnimationUrl;
+
+  // visible=false여도 VRMCharacter를 언마운트하지 않음 (로딩 반복 방지)
+  // 대신 그룹의 visible 속성으로 숨김 처리
 
   return (
     <>
-      {/* 조명 */}
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[2, 3, 2]} intensity={0.8} />
-      <directionalLight position={[-1, 2, -1]} intensity={0.4} />
-      <hemisphereLight args={['#ffffff', '#444444', 0.6]} />
+      {/* 조명 - 항상 렌더링 (설정 반영) */}
+      <ambientLight intensity={lighting.ambientIntensity} />
+      <directionalLight position={[2, 3, 2]} intensity={lighting.directionalIntensity} />
+      <directionalLight position={[-1, 2, -1]} intensity={lighting.directionalIntensity * 0.5} />
+      <hemisphereLight args={['#ffffff', '#444444', lighting.hemisphereIntensity]} />
+
+      {/* 씬 헬퍼 (그리드, 축) */}
+      {sceneHelpers?.showGrid && (
+        <gridHelper args={[10, 10, '#888888', '#444444']} position={[0, 0, 0]} />
+      )}
+      {sceneHelpers?.showAxes && (
+        <axesHelper args={[2]} />
+      )}
 
       {/* 포탈 효과 (전환 중) */}
-      {transitionProgress < 1 && transitionProgress > 0 && (
+      {transitionProgress < 1 && transitionProgress > 0 && visible && (
         <PortalEffect progress={transitionProgress} />
       )}
 
-      {/* VRM 캐릭터 그룹 */}
-      <group ref={groupRef}>
-        <Suspense fallback={<LoadingPlaceholder />}>
-          <VRMCharacter
-            modelUrl={modelUrl}
-            onLoaded={onLoaded}
-            animationUrl={animationUrl}
-            expression={expression}
-          />
-        </Suspense>
-      </group>
+      {/* VRM 캐릭터 그룹 - 한 번 visible되면 계속 마운트 유지 */}
+      {shouldMount && (
+        <group ref={groupRef} visible={visible}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <VRMCharacter
+              modelUrl={modelUrl}
+              onLoaded={onLoaded}
+              animationUrl={effectiveAnimationUrl}
+              expression={expression}
+            />
+          </Suspense>
+        </group>
+      )}
     </>
   );
 }

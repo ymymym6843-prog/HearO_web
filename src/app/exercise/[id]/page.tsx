@@ -48,6 +48,7 @@ import { MediaErrorBoundary } from '@/components/common';
 import { Icon } from '@/components/ui/Icon';
 import { useSceneSettings } from '@/hooks/useSceneSettings';
 import { SceneSettingsPanel } from '@/components/three/SceneSettingsPanel';
+import type { WorldviewId } from '@/constants/worldviews';
 
 // HybridScene 컴포넌트 (lazy load)
 const HybridScene = dynamic(() => import('@/components/hybrid/HybridScene'), { ssr: false });
@@ -253,6 +254,13 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const [showSceneSettings, setShowSceneSettings] = useState(false);
   const sceneSettings = useSceneSettings();
 
+  // 배경 관리 (HybridScene에서 노출된 컨트롤 사용)
+  const [bgControl, setBgControl] = useState<{
+    randomBackground: () => void;
+    currentIndex: number;
+    totalCount: number;
+  } | null>(null);
+
   const colors = WORLDVIEW_COLORS[currentWorldview];
   const modelUrl = WORLDVIEW_MODELS[currentWorldview].modelUrl;
   const info = exerciseInfo[exerciseId] || { koreanName: exerciseId, targetReps: 10 };
@@ -309,6 +317,14 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     };
   }, [currentWorldview, exerciseId, setWorkflowPhase, startDialogue]);
 
+  // 카운트다운 시작 (대화 완료 또는 스킵 버튼 클릭 시)
+  const handleStartCountdown = useCallback(() => {
+    initAudio();
+    sfxService.playCommonSFX('tap');
+    resetCalibration();
+    setCountdown(3);
+  }, [initAudio, resetCalibration]);
+
   // Phase 이벤트 리스너
   useEffect(() => {
     const unsubscribe = addEventListener((event) => {
@@ -322,7 +338,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     });
 
     return unsubscribe;
-  }, [addEventListener, startTransition]);
+  }, [addEventListener, startTransition, handleStartCountdown]);
 
   // 세션 복구 확인
   useEffect(() => {
@@ -374,14 +390,6 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     sessionRecoveryService.clearSessionState();
     setShowRecoveryModal(false);
   }, []);
-
-  // 카운트다운 시작 (대화 완료 또는 스킵 버튼 클릭 시)
-  const handleStartCountdown = useCallback(() => {
-    initAudio();
-    sfxService.playCommonSFX('tap');
-    resetCalibration();
-    setCountdown(3);
-  }, [initAudio, resetCalibration]);
 
   // VN 대화 스킵 버튼 (intro phase에서만 표시)
   const handleSkipDialogue = useCallback(() => {
@@ -563,10 +571,14 @@ export default function ExercisePage({ params }: ExercisePageProps) {
         worldview={currentWorldview}
         vrmModelUrl={modelUrl}
         usePanoramaBg={true}
-        showBgRandomizer={currentWorkflowPhase === 'intro'}
+        showBgRandomizer={true}
         initialPhase="intro"
         onPhaseChange={(p) => console.log('[ExercisePage] Phase changed:', p)}
         onVRMLoaded={() => console.log('[ExercisePage] VRM loaded')}
+        exposeBackgroundControl={setBgControl}
+        lightingSettings={sceneSettings.lighting}
+        cameraAngle={sceneSettings.cameraAngle}
+        sceneHelpers={sceneSettings.helpers}
         className="absolute inset-0"
       >
         {/* Children: 운동 UI 오버레이 */}
@@ -592,16 +604,6 @@ export default function ExercisePage({ params }: ExercisePageProps) {
 
         {/* 우측 버튼들 */}
         <div className="flex items-center gap-2">
-          {/* intro phase에서 스킵 버튼 */}
-          {currentWorkflowPhase === 'intro' && (
-            <button
-              onClick={handleSkipDialogue}
-              className="px-3 py-2 rounded-full bg-black/30 backdrop-blur-sm text-white/70 hover:bg-black/50 text-sm"
-            >
-              스킵 →
-            </button>
-          )}
-
           {/* exercise phase에서 씬 설정 */}
           {currentWorkflowPhase === 'exercise' && show3DCharacter && (
             <button
@@ -650,6 +652,9 @@ export default function ExercisePage({ params }: ExercisePageProps) {
             helpers={sceneSettings.helpers}
             onToggleGrid={sceneSettings.toggleGrid}
             onToggleAxes={sceneSettings.toggleAxes}
+            onRandomizeBackground={bgControl?.randomBackground}
+            backgroundIndex={bgControl?.currentIndex}
+            backgroundTotal={bgControl?.totalCount}
             onReset={sceneSettings.resetToDefaults}
             compact
           />
