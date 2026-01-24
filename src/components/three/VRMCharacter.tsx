@@ -19,6 +19,32 @@ import { useCharacterStore } from '@/stores/useCharacterStore';
 import { vrmFeedbackService, setVRMExpression, type ExpressionState } from '@/services/vrmFeedbackService';
 import { Icon } from '@/components/ui/Icon';
 
+// 애니메이션 프리셋 타입
+export type AnimationPreset = 'none' | 'A' | 'B';
+
+// 애니메이션 프리셋 설정
+export const ANIMATION_PRESETS: Record<AnimationPreset, {
+  label: string;
+  initial: string | null;  // 초기 등장 애니메이션 (1회)
+  idle: string | null;     // Idle 애니메이션 (루프)
+}> = {
+  none: {
+    label: '없음 (T-Pose)',
+    initial: null,
+    idle: null,
+  },
+  A: {
+    label: 'A: 등장 → 대기',
+    initial: '/animations/Appearing.vrma',
+    idle: '/animations/Waiting.vrma',
+  },
+  B: {
+    label: 'B: 인사 → 둘러보기',
+    initial: '/animations/Greeting.vrma',
+    idle: '/animations/LookAround.vrma',
+  },
+};
+
 interface VRMCharacterProps {
   modelUrl: string;
   onLoaded?: (vrm: VRM) => void;
@@ -26,6 +52,8 @@ interface VRMCharacterProps {
   // VRMA 애니메이션 관련
   animationUrl?: string | null; // 재생할 VRMA URL
   onAnimationEnd?: () => void; // 애니메이션 종료 콜백
+  // 초기/Idle 애니메이션
+  animationPreset?: AnimationPreset; // 프리셋 선택
   // 표정 관련
   expression?: ExpressionState | null; // 설정할 표정
 }
@@ -36,6 +64,7 @@ export function VRMCharacter({
   onError,
   animationUrl,
   onAnimationEnd,
+  animationPreset = 'A', // 기본값: A (등장 → 대기)
   expression,
 }: VRMCharacterProps) {
   const { scene } = useThree();
@@ -65,6 +94,10 @@ export function VRMCharacter({
   // 애니메이션 재생 중 여부 (포즈 동기화 비활성화용)
   const [isPlayingVRMA, setIsPlayingVRMA] = useState(false);
 
+  // 초기 애니메이션 상태
+  const [initialAnimationPhase, setInitialAnimationPhase] = useState<'pending' | 'initial' | 'idle' | 'complete'>('pending');
+  const initialAnimationStartedRef = useRef(false);
+
   // VRM을 state로 관리하여 변경 시 리렌더링 트리거
   const [loadedVRM, setLoadedVRM] = useState<VRM | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -93,20 +126,60 @@ export function VRMCharacter({
   });
 
   // VRMA 애니메이션 로드 및 재생
-  const handlePlayAnimation = useCallback(async (url: string) => {
+  const handlePlayAnimation = useCallback(async (url: string, loop: boolean = false) => {
     if (!loadedVRM) return;
 
     try {
       setIsPlayingVRMA(true);
-      setLoop(false); // 완료 애니메이션은 1회만 재생
+      setLoop(loop);
       await loadAnimation(url);
       playAnimation();
-      console.log('[VRMCharacter] Playing animation:', url);
+      console.log('[VRMCharacter] Playing animation:', url, loop ? '(loop)' : '(once)');
     } catch (error) {
       console.error('[VRMCharacter] Failed to play animation:', error);
       setIsPlayingVRMA(false);
     }
   }, [loadedVRM, loadAnimation, playAnimation, setLoop]);
+
+  // 초기 애니메이션 시작
+  const startInitialAnimation = useCallback(async () => {
+    if (initialAnimationStartedRef.current) return;
+    if (!loadedVRM || animationPreset === 'none') {
+      setInitialAnimationPhase('complete');
+      return;
+    }
+
+    const preset = ANIMATION_PRESETS[animationPreset];
+    initialAnimationStartedRef.current = true;
+
+    if (preset.initial) {
+      // 초기 등장 애니메이션 재생
+      setInitialAnimationPhase('initial');
+      console.log('[VRMCharacter] Starting initial animation:', preset.initial);
+      await handlePlayAnimation(preset.initial, false);
+    } else if (preset.idle) {
+      // 바로 idle 애니메이션으로
+      setInitialAnimationPhase('idle');
+      console.log('[VRMCharacter] Starting idle animation:', preset.idle);
+      await handlePlayAnimation(preset.idle, true);
+    } else {
+      setInitialAnimationPhase('complete');
+    }
+  }, [loadedVRM, animationPreset, handlePlayAnimation]);
+
+  // Idle 애니메이션 시작 (초기 애니메이션 완료 후)
+  const startIdleAnimation = useCallback(async () => {
+    if (animationPreset === 'none') return;
+
+    const preset = ANIMATION_PRESETS[animationPreset];
+    if (preset.idle) {
+      setInitialAnimationPhase('idle');
+      console.log('[VRMCharacter] Starting idle animation:', preset.idle);
+      await handlePlayAnimation(preset.idle, true);
+    } else {
+      setInitialAnimationPhase('complete');
+    }
+  }, [animationPreset, handlePlayAnimation]);
 
   // animationUrl prop 변경 감지
   useEffect(() => {
@@ -133,6 +206,35 @@ export function VRMCharacter({
       setVRMExpression(loadedVRM, expression);
     }
   }, [expression, loadedVRM]);
+
+  // VRM 로드 완료 시 초기 애니메이션 시작
+  useEffect(() => {
+    if (loadedVRM && !initialAnimationStartedRef.current) {
+      // 약간의 딜레이 후 초기 애니메이션 시작 (로딩 완료 확인용)
+      const timer = setTimeout(() => {
+        startInitialAnimation();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loadedVRM, startInitialAnimation]);
+
+  // 애니메이션 프리셋 변경 시 리셋
+  useEffect(() => {
+    if (loadedVRM && initialAnimationStartedRef.current) {
+      // 프리셋 변경 시 초기 애니메이션 다시 시작
+      initialAnimationStartedRef.current = false;
+      setInitialAnimationPhase('pending');
+      stopAnimation();
+      setIsPlayingVRMA(false);
+
+      // 약간의 딜레이 후 새 애니메이션 시작
+      const timer = setTimeout(() => {
+        startInitialAnimation();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animationPreset]);
 
   // VRM 모델 로드 (중복 로딩 방지)
   useEffect(() => {
@@ -268,11 +370,19 @@ export function VRMCharacter({
       updateAnimation(delta);
 
       // 애니메이션 종료 감지 (isAnimationPlaying이 true→false로 변할 때)
-      // 페이드아웃 중이 아닐 때만 페이드아웃 시작
+      // 페이드아웃 중이 아닐 때만 처리
       if (prevAnimationPlayingRef.current && !isAnimationPlaying && !isAnimationFadingOut) {
-        console.log('[VRMCharacter] Animation ended, starting fadeOut...');
-        fadeOutAnimation(0.5); // 0.5초 동안 부드럽게 페이드아웃
-        onAnimationEnd?.();
+        // 초기 애니메이션 → Idle 전환
+        if (initialAnimationPhase === 'initial') {
+          console.log('[VRMCharacter] Initial animation ended, transitioning to idle...');
+          startIdleAnimation();
+        } else if (initialAnimationPhase !== 'idle') {
+          // 일반 애니메이션 종료 (idle 루프가 아닌 경우)
+          console.log('[VRMCharacter] Animation ended, starting fadeOut...');
+          fadeOutAnimation(0.5); // 0.5초 동안 부드럽게 페이드아웃
+          onAnimationEnd?.();
+        }
+        // idle 루프 중에는 계속 재생되므로 여기에 도달하지 않음
       }
 
       // 페이드아웃이 완료되면 상태 리셋

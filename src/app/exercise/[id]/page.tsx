@@ -48,6 +48,7 @@ import { MediaErrorBoundary } from '@/components/common';
 import { Icon } from '@/components/ui/Icon';
 import { useSceneSettings } from '@/hooks/useSceneSettings';
 import { SceneSettingsPanel } from '@/components/three/SceneSettingsPanel';
+import type { AnimationPreset } from '@/components/three/VRMCharacter';
 import type { WorldviewId } from '@/constants/worldviews';
 
 // HybridScene 컴포넌트 (lazy load)
@@ -217,6 +218,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const [performanceRating, setPerformanceRating] = useState<PerformanceRating>('normal');
   const [completionStory, setCompletionStory] = useState<string>('');
   const [detectorError, setDetectorError] = useState<string | null>(null);
+  const [animationPreset, setAnimationPreset] = useState<AnimationPreset>('A'); // 기본: 등장 → 대기
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveredReps, setRecoveredReps] = useState(0);
 
@@ -579,6 +581,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
         lightingSettings={sceneSettings.lighting}
         cameraAngle={sceneSettings.cameraAngle}
         sceneHelpers={sceneSettings.helpers}
+        animationPreset={animationPreset}
         className="absolute inset-0"
       >
         {/* Children: 운동 UI 오버레이 */}
@@ -655,6 +658,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
             onRandomizeBackground={bgControl?.randomBackground}
             backgroundIndex={bgControl?.currentIndex}
             backgroundTotal={bgControl?.totalCount}
+            animationPreset={animationPreset}
+            onAnimationPresetChange={setAnimationPreset}
             onReset={sceneSettings.resetToDefaults}
             compact
           />

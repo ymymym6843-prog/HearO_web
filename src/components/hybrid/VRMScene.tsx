@@ -10,13 +10,10 @@
 import React, { Suspense, useRef, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { VRMCharacter } from '@/components/three/VRMCharacter';
+import { VRMCharacter, type AnimationPreset } from '@/components/three/VRMCharacter';
 import type { ExpressionState } from '@/services/vrmFeedbackService';
 import type { LightingSettings, CameraAngle, SceneHelpers } from '@/types/scene';
 import { CAMERA_PRESETS, LIGHTING_PRESETS } from '@/types/scene';
-
-// 초기 등장 애니메이션 URL
-const INITIAL_ANIMATION_URL = '/animations/Greeting.vrma';
 
 interface VRMSceneProps {
   /** VRM 모델 URL */
@@ -31,8 +28,8 @@ interface VRMSceneProps {
   animationUrl?: string | null;
   /** 표정 상태 */
   expression?: ExpressionState | null;
-  /** 초기 등장 애니메이션 재생 여부 (기본: true) */
-  playInitialAnimation?: boolean;
+  /** 애니메이션 프리셋 (초기 등장 + Idle) */
+  animationPreset?: AnimationPreset;
   /** 조명 설정 */
   lightingSettings?: LightingSettings;
   /** 카메라 앵글 */
@@ -66,7 +63,7 @@ export function VRMScene({
   transitionProgress = 1,
   animationUrl,
   expression,
-  playInitialAnimation = true,
+  animationPreset = 'A',
   lightingSettings,
   cameraAngle,
   sceneHelpers,
@@ -76,10 +73,6 @@ export function VRMScene({
   const groupRef = useRef<THREE.Group>(null);
   const [opacity, setOpacity] = useState(0);
   const { camera } = useThree();
-
-  // 초기 애니메이션 상태
-  const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string | null>(null);
-  const hasPlayedInitialAnimation = useRef(false);
 
   // VRM이 한 번이라도 visible 되었는지 추적 (한 번 true가 되면 계속 마운트 유지)
   const hasBeenVisibleRef = useRef(false);
@@ -153,31 +146,8 @@ export function VRMScene({
     }
   });
 
-  // 초기 등장 애니메이션 재생
-  useEffect(() => {
-    if (visible && playInitialAnimation && !hasPlayedInitialAnimation.current) {
-      hasPlayedInitialAnimation.current = true;
-      console.log('[VRMScene] Playing initial greeting animation');
-      setCurrentAnimationUrl(INITIAL_ANIMATION_URL);
-
-      // 애니메이션이 끝나면 URL 클리어 (1회 재생)
-      const timer = setTimeout(() => {
-        setCurrentAnimationUrl(null);
-      }, 3000); // Greeting 애니메이션 대략 3초
-
-      return () => clearTimeout(timer);
-    }
-  }, [visible, playInitialAnimation]);
-
-  // 외부 애니메이션 URL이 변경되면 적용
-  useEffect(() => {
-    if (animationUrl) {
-      setCurrentAnimationUrl(animationUrl);
-    }
-  }, [animationUrl]);
-
-  // 실제 재생할 애니메이션 URL (외부 > 현재)
-  const effectiveAnimationUrl = animationUrl || currentAnimationUrl;
+  // 초기 애니메이션은 VRMCharacter에서 animationPreset으로 처리
+  // animationUrl prop은 완료 애니메이션 등 일회성 애니메이션용
 
   // visible=false여도 VRMCharacter를 언마운트하지 않음 (로딩 반복 방지)
   // 대신 그룹의 visible 속성으로 숨김 처리
@@ -210,7 +180,8 @@ export function VRMScene({
             <VRMCharacter
               modelUrl={modelUrl}
               onLoaded={onLoaded}
-              animationUrl={effectiveAnimationUrl}
+              animationUrl={animationUrl}
+              animationPreset={animationPreset}
               expression={expression}
             />
           </Suspense>

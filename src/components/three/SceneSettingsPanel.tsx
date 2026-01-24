@@ -16,6 +16,7 @@ import type {
   LightingSettings,
 } from '@/types/scene';
 import { CAMERA_PRESETS, LIGHTING_PRESETS } from '@/types/scene';
+import { ANIMATION_PRESETS, type AnimationPreset } from './VRMCharacter';
 
 interface SceneSettingsPanelProps {
   // 조명
@@ -36,6 +37,9 @@ interface SceneSettingsPanelProps {
   onRandomizeBackground?: () => void;
   backgroundIndex?: number;
   backgroundTotal?: number;
+  // 애니메이션 프리셋 (선택)
+  animationPreset?: AnimationPreset;
+  onAnimationPresetChange?: (preset: AnimationPreset) => void;
   // 리셋
   onReset: () => void;
   // UI 옵션
@@ -167,6 +171,8 @@ export function SceneSettingsPanel({
   onRandomizeBackground,
   backgroundIndex,
   backgroundTotal = 20,
+  animationPreset,
+  onAnimationPresetChange,
   onReset,
   className = '',
   compact = false,
@@ -280,6 +286,50 @@ export function SceneSettingsPanel({
           )}
         </div>
       </CollapsibleSection>
+
+      {/* 캐릭터 애니메이션 프리셋 */}
+      {onAnimationPresetChange && (
+        <CollapsibleSection title="캐릭터 동작" icon="walk-outline" defaultOpen={true}>
+          <div className="space-y-2">
+            {(['none', 'A', 'B'] as AnimationPreset[]).map((preset) => (
+              <button
+                key={preset}
+                onClick={() => onAnimationPresetChange(preset)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left
+                  ${
+                    animationPreset === preset
+                      ? 'bg-purple-500/30 border border-purple-500/50 text-white'
+                      : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                  }`}
+              >
+                <div className="w-6 h-6 flex items-center justify-center rounded bg-white/10">
+                  <span className="text-xs font-bold text-white/80">
+                    {preset === 'none' ? '-' : preset}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">
+                    {ANIMATION_PRESETS[preset].label}
+                  </div>
+                  {preset !== 'none' && (
+                    <div className="text-[10px] text-white/50 mt-0.5">
+                      {preset === 'A'
+                        ? 'Appearing > Waiting'
+                        : 'Greeting > LookAround'}
+                    </div>
+                  )}
+                </div>
+                {animationPreset === preset && (
+                  <Icon name="checkmark-circle" size={18} className="text-purple-400" />
+                )}
+              </button>
+            ))}
+            <p className="text-[10px] text-white/40 text-center pt-1">
+              VRM 로딩 시 재생되는 애니메이션
+            </p>
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* 뷰 설정 (헬퍼) */}
       <CollapsibleSection title="뷰" icon="eye-outline" defaultOpen={!compact}>

@@ -27,6 +27,7 @@ import type { WorldviewType } from '@/types/vrm';
 import type { PhaseType, TransitionConfig } from '@/types/phase';
 import type { WorldviewId } from '@/constants/worldviews';
 import type { LightingSettings, CameraAngle, SceneHelpers } from '@/types/scene';
+import type { AnimationPreset } from '@/components/three/VRMCharacter';
 
 // Components
 import { SkyboxBackground } from './SkyboxBackground';
@@ -85,6 +86,8 @@ interface HybridSceneProps {
   cameraAngle?: CameraAngle;
   /** 3D 씬 헬퍼 (그리드, 축) */
   sceneHelpers?: SceneHelpers;
+  /** VRM 애니메이션 프리셋 */
+  animationPreset?: AnimationPreset;
   /** className */
   className?: string;
 }
@@ -112,6 +115,7 @@ export function HybridScene({
   lightingSettings,
   cameraAngle,
   sceneHelpers,
+  animationPreset = 'A',
   className = '',
 }: HybridSceneProps) {
   const { current: currentPhase, setPhase, startTransition } = usePhaseStore();
@@ -229,6 +233,7 @@ export function HybridScene({
             lightingSettings={lightingSettings}
             cameraAngle={cameraAngle}
             sceneHelpers={sceneHelpers}
+            animationPreset={animationPreset}
           />
         </Canvas>
       </div>
