@@ -5,3 +5,6 @@
 
 export { ROMGauge, default as ROMGaugeDefault } from './ROMGauge';
 export type { ROMGaugeProps } from './ROMGauge';
+
+export { ROMTrendChart, default as ROMTrendChartDefault } from './ROMTrendChart';
+export type { ROMTrendChartProps, ROMDataPoint } from './ROMTrendChart';

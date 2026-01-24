@@ -19,12 +19,22 @@ export interface Worldview {
     gradient: string[];
   };
   cardImage: string;
+  /** 기존 배경 (하위 호환) */
   bgImages: string[];
+  /** 파노라마 배경 이미지 (20개) */
+  panoramaBgImages: string[];
   heroImages: {
     male: string;
     female: string;
   };
   available: boolean;
+}
+
+// 배경 이미지 배열 생성 헬퍼 함수
+function generateBgImages(worldview: string, count: number): string[] {
+  return Array.from({ length: count }, (_, i) =>
+    `/images/worldviews/backgrounds/${worldview}/${worldview}${String(i + 1).padStart(2, '0')}.png`
+  );
 }
 
 // 활성화된 세계관 (v1.0)
@@ -55,6 +65,7 @@ export const WORLDVIEWS: Record<WorldviewId, Worldview> = {
       '/images/worldviews/fantasy04_bg.jpg',
       '/images/worldviews/fantasy05_bg.jpg',
     ],
+    panoramaBgImages: generateBgImages('fantasy', 20),
     heroImages: {
       male: '/images/worldviews/hero/fantasy_hero_male.png',
       female: '/images/worldviews/hero/fantasy_hero_female.png',
@@ -82,6 +93,7 @@ export const WORLDVIEWS: Record<WorldviewId, Worldview> = {
       '/images/worldviews/sf04_bg.jpg',
       '/images/worldviews/sf05_bg.jpg',
     ],
+    panoramaBgImages: generateBgImages('sf', 20),
     heroImages: {
       male: '/images/worldviews/hero/sf_hero_male.png',
       female: '/images/worldviews/hero/sf_hero_female.png',
@@ -109,6 +121,7 @@ export const WORLDVIEWS: Record<WorldviewId, Worldview> = {
       '/images/worldviews/zombie04_bg.jpg',
       '/images/worldviews/zombie05_bg.jpg',
     ],
+    panoramaBgImages: generateBgImages('zombie', 20),
     heroImages: {
       male: '/images/worldviews/hero/zombie_hero_male.png',
       female: '/images/worldviews/hero/zombie_hero_female.png',
@@ -136,6 +149,7 @@ export const WORLDVIEWS: Record<WorldviewId, Worldview> = {
       '/images/worldviews/sports04_bg.jpg',
       '/images/worldviews/sports05_bg.jpg',
     ],
+    panoramaBgImages: generateBgImages('sports', 20),
     heroImages: {
       male: '/images/worldviews/hero/sports_hero_male.png',
       female: '/images/worldviews/hero/sports_hero_female.png',
@@ -163,6 +177,7 @@ export const WORLDVIEWS: Record<WorldviewId, Worldview> = {
       '/images/worldviews/spy04_bg.jpg',
       '/images/worldviews/spy05_bg.jpg',
     ],
+    panoramaBgImages: generateBgImages('spy', 20),
     heroImages: {
       male: '/images/worldviews/hero/spy_hero_male.png',
       female: '/images/worldviews/hero/spy_hero_female.png',
@@ -190,6 +205,7 @@ export const WORLDVIEWS: Record<WorldviewId, Worldview> = {
       '/images/worldviews/idol04_bg.jpg',
       '/images/worldviews/idol05_bg.jpg',
     ],
+    panoramaBgImages: generateBgImages('idol', 20),
     heroImages: {
       male: '/images/worldviews/hero/idol_hero_male.png',
       female: '/images/worldviews/hero/idol_hero_female.png',
@@ -210,4 +226,49 @@ export function getActiveWorldviews(): Worldview[] {
 
 export function getAllWorldviews(): Worldview[] {
   return WORLDVIEW_IDS.map(id => WORLDVIEWS[id]);
+}
+
+// ============================================
+// 파노라마 배경 관련 유틸리티
+// ============================================
+
+/** 파노라마 배경 이미지 개수 */
+export const PANORAMA_BG_COUNT = 20;
+
+/**
+ * 특정 세계관의 파노라마 배경 이미지 목록 가져오기
+ */
+export function getPanoramaBgImages(worldviewId: WorldviewId): string[] {
+  return WORLDVIEWS[worldviewId].panoramaBgImages;
+}
+
+/**
+ * 특정 세계관에서 랜덤 파노라마 배경 이미지 가져오기
+ */
+export function getRandomPanoramaBg(worldviewId: WorldviewId): string {
+  const images = WORLDVIEWS[worldviewId].panoramaBgImages;
+  const randomIndex = Math.floor(Math.random() * images.length);
+  return images[randomIndex];
+}
+
+/**
+ * 특정 세계관의 특정 인덱스 파노라마 배경 가져오기
+ * @param worldviewId 세계관 ID
+ * @param index 0-19 인덱스 (범위 초과 시 순환)
+ */
+export function getPanoramaBgByIndex(worldviewId: WorldviewId, index: number): string {
+  const images = WORLDVIEWS[worldviewId].panoramaBgImages;
+  const safeIndex = ((index % images.length) + images.length) % images.length;
+  return images[safeIndex];
+}
+
+/**
+ * 세션별 일관된 랜덤 배경 가져오기 (같은 세션에서는 같은 배경)
+ * @param worldviewId 세계관 ID
+ * @param sessionSeed 세션 시드 (예: Date.now() 또는 sessionId)
+ */
+export function getSeededRandomPanoramaBg(worldviewId: WorldviewId, sessionSeed: number): string {
+  const images = WORLDVIEWS[worldviewId].panoramaBgImages;
+  const seededIndex = sessionSeed % images.length;
+  return images[seededIndex];
 }

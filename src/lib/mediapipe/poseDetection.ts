@@ -68,7 +68,6 @@ const MEDIAPIPE_VERSION = '0.10.22-rc.20250304';
 let poseLandmarker: PoseLandmarker | null = null;
 let lastVideoTime = -1;
 let currentConfig: Required<PoseDetectionConfig> = { ...DEFAULT_CONFIG };
-let debugFrameCount = 0;  // 디버그 로그용 프레임 카운터
 
 /**
  * MediaPipe 초기화
@@ -157,16 +156,6 @@ export function detectPoseWithWorld(
 
   lastVideoTime = video.currentTime;
   const results = poseLandmarker.detectForVideo(video, timestamp);
-  debugFrameCount++;
-
-  // 디버그: results 객체 구조 확인 (첫 3프레임만)
-  if (debugFrameCount <= 3) {
-    console.log('[MediaPipe] Frame', debugFrameCount);
-    console.log('[MediaPipe] results keys:', Object.keys(results));
-    console.log('[MediaPipe] worldLandmarks exists:', 'worldLandmarks' in results);
-    console.log('[MediaPipe] worldLandmarks:', results.worldLandmarks);
-    console.log('[MediaPipe] worldLandmarks[0]?.length:', results.worldLandmarks?.[0]?.length);
-  }
 
   if (results.landmarks && results.landmarks.length > 0) {
     // 2D 정규화 좌표
@@ -184,11 +173,6 @@ export function detectPoseWithWorld(
       z: lm.z,
       visibility: lm.visibility ?? 0,
     })) ?? null;
-
-    // 디버그: world landmarks 상태
-    if (debugFrameCount <= 3) {
-      console.log('[MediaPipe] worldLandmarks3D:', worldLandmarks3D ? 'exists' : 'NULL');
-    }
 
     // worldLandmarks3D가 null이면 landmarks2D를 fallback으로 사용
     return { landmarks2D, worldLandmarks3D: worldLandmarks3D ?? landmarks2D };

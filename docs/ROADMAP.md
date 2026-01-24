@@ -14,7 +14,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Current Status: 87% Complete
+## Current Status: 90% Complete
 
 ### Build Status
 - **TypeScript Errors**: 0
@@ -22,9 +22,12 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - **Last Updated**: 2026-01-24
 
 ### Recent Major Updates
-- HearO-v2 의료 기능 포팅 (Phase 1)
+- HearO-v2 의료 기능 포팅 (Phase 1 완료)
 - 게이미피케이션 HUD 시스템
 - Recharts 기반 데이터 시각화
+- DB 마이그레이션 적용 (medical_core)
+- ROM 트렌드 차트 컴포넌트
+- 일일 통계 대시보드
 
 ---
 
@@ -197,7 +200,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Phase 10: Medical System - HearO-v2 포팅 (80% Complete)
+## Phase 10: Medical System - HearO-v2 포팅 (95% Complete)
 
 ### Completed Tasks (Phase 1)
 - [x] ROM 측정 서비스 (AAOS 표준 기반)
@@ -207,13 +210,13 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - [x] ExerciseHUD 컴포넌트 (게이미피케이션 통합)
 - [x] RedFlagAlert 컴포넌트
 - [x] PainScaleInput 컴포넌트 (VAS 0-10)
-- [x] DB 마이그레이션 파일 준비
+- [x] DB 마이그레이션 적용 (Supabase)
 - [x] TypeScript 타입 정의 (medical.ts)
+- [x] ROM 트렌드 차트 컴포넌트
+- [x] 일일 통계 대시보드 (게이미피케이션)
+- [x] 캘리브레이션 UI (게이미피케이션 스타일 - 기존 완성)
 
 ### Remaining Tasks (Phase 2+)
-- [ ] 캘리브레이션 UI 리뉴얼
-- [ ] 운동 결과 시각화 대시보드
-- [ ] 일일 통계 차트
 - [ ] 의료진 대시보드 (Phase 3)
 - [ ] 리포트 내보내기 기능 (Phase 3)
 

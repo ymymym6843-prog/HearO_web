@@ -63,7 +63,8 @@ export default function HandExercisePage() {
   // State
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDetecting, setIsDetecting] = useState(false);
+  const [_isDetecting, setIsDetecting] = useState(false);
+  void _isDetecting; // UI 표시용으로 예약 (현재 미사용)
   const [detectedHands, setDetectedHands] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
   const [analysis, setAnalysis] = useState<HandRehabAnalysis | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -98,8 +99,11 @@ export default function HandExercisePage() {
           '훌륭해요! 조금만 더!',
         ];
         const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-        setNpcDialogue(randomMessage);
-        setShowNPCDialogue(true);
+        // 비동기로 상태 업데이트하여 cascading render 방지
+        queueMicrotask(() => {
+          setNpcDialogue(randomMessage);
+          setShowNPCDialogue(true);
+        });
         ttsService.speakWithWebSpeech(randomMessage);
       }
 
@@ -116,7 +120,11 @@ export default function HandExercisePage() {
     let rating: PerformanceRating = 'normal';
     if (avgProgress >= 90) rating = 'perfect';
     else if (avgProgress >= 70) rating = 'good';
-    setPerformanceRating(rating);
+
+    // 비동기로 상태 업데이트하여 cascading render 방지
+    queueMicrotask(() => {
+      setPerformanceRating(rating);
+    });
 
     // 완료 효과음
     sfxService.playCommonSFX('complete');
@@ -128,8 +136,10 @@ export default function HandExercisePage() {
       ? '잘했어요! 좋은 운동이었어요!'
       : '수고했어요!';
 
-    setNpcDialogue(completionMsg);
-    setShowNPCDialogue(true);
+    queueMicrotask(() => {
+      setNpcDialogue(completionMsg);
+      setShowNPCDialogue(true);
+    });
     ttsService.speakWithWebSpeech(completionMsg);
   }, [isCompleted, currentWorldview, exerciseId, analysis?.progress]);
 
@@ -186,20 +196,22 @@ export default function HandExercisePage() {
     }
   }, []);
 
-  // 손 감지 루프
+  // 손 감지 루프 (ref를 사용하여 재귀 호출 문제 해결)
+  const detectHandsRef = useRef<() => void>(() => {});
+
   const detectHands = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const handLandmarker = handLandmarkerRef.current;
 
     if (!video || !canvas || !handLandmarker || video.readyState !== 4) {
-      animationFrameRef.current = requestAnimationFrame(detectHands);
+      animationFrameRef.current = requestAnimationFrame(() => detectHandsRef.current());
       return;
     }
 
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      animationFrameRef.current = requestAnimationFrame(detectHands);
+      animationFrameRef.current = requestAnimationFrame(() => detectHandsRef.current());
       return;
     }
 
@@ -279,8 +291,13 @@ export default function HandExercisePage() {
       setDetectedHands({ left: false, right: false });
     }
 
-    animationFrameRef.current = requestAnimationFrame(detectHands);
+    animationFrameRef.current = requestAnimationFrame(() => detectHandsRef.current());
   }, [exerciseId, exerciseInfo.targetReps, isCompleted]);
+
+  // detectHands ref 업데이트
+  useEffect(() => {
+    detectHandsRef.current = detectHands;
+  }, [detectHands]);
 
   // 초기화
   useEffect(() => {

@@ -15,7 +15,8 @@ import { useCharacterStore } from '@/stores/useCharacterStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { WORLDVIEW_COLORS } from '@/constants/themes';
 import { WORLDVIEW_MODELS } from '@/types/vrm';
-import { RepCounter, PhaseIndicator, AccuracyMeter, CoachingMessage, HoldTimer } from '@/components/feedback';
+// Feedback 컴포넌트들은 ExerciseHUD에서 통합 처리됨
+// import { RepCounter, PhaseIndicator, AccuracyMeter, CoachingMessage, HoldTimer } from '@/components/feedback';
 import { NPCDialogue } from '@/components/story/NPCDialogue';
 import {
   ExerciseCompleteScreen,
@@ -196,11 +197,14 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   } = useExerciseStore();
   const {
     isLoaded: isCharacterLoaded,
-    isCalibrating,
-    isCalibrated,
+    isCalibrating: _isCalibrating,
+    isCalibrated: _isCalibrated,
     resetCalibration,
     setPoseLandmarks,
   } = useCharacterStore();
+  // isCalibrating/isCalibrated는 현재 UI에서 직접 사용되지 않지만 CalibrationOverlay에서 간접 사용됨
+  void _isCalibrating;
+  void _isCalibrated;
   const { show3DCharacter, updateSetting } = useSettingsStore();
 
   const [isReady, setIsReady] = useState(false);
@@ -262,22 +266,28 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   // 운동 설정 및 감지기 초기화
   useEffect(() => {
     setExercise(exerciseId);
-    setDetectorError(null);
 
-    // 감지기 초기화
-    try {
-      resetDetector(exerciseId);
-      detectorRef.current = getDetectorForExercise(exerciseId);
-      lastRepCountRef.current = 0;
-      accumulatedAccuracyRef.current = [];
-    } catch (error) {
-      console.error('감지기 초기화 실패:', error);
-      setDetectorError(
-        error instanceof Error
+    // 감지기 초기화 (에러 상태는 초기화 결과에 따라 설정)
+    const initializeDetector = () => {
+      try {
+        resetDetector(exerciseId);
+        detectorRef.current = getDetectorForExercise(exerciseId);
+        lastRepCountRef.current = 0;
+        accumulatedAccuracyRef.current = [];
+        return null; // 성공 시 에러 없음
+      } catch (error) {
+        console.error('감지기 초기화 실패:', error);
+        return error instanceof Error
           ? `운동 감지기 초기화 실패: ${error.message}`
-          : '운동 감지기를 초기화할 수 없습니다'
-      );
-    }
+          : '운동 감지기를 초기화할 수 없습니다';
+      }
+    };
+
+    const error = initializeDetector();
+    // 비동기로 상태 업데이트하여 cascading render 방지
+    queueMicrotask(() => {
+      setDetectorError(error);
+    });
 
     return () => {
       // 컴포넌트 언마운트 시 감지기 리셋
@@ -292,7 +302,10 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     if (recoverable && recoverable.canRecover) {
       // 같은 운동인 경우에만 복구 모달 표시
       if (recoverable.sessionState.exerciseType === exerciseId) {
-        setShowRecoveryModal(true);
+        // 비동기로 상태 업데이트하여 cascading render 방지
+        queueMicrotask(() => {
+          setShowRecoveryModal(true);
+        });
       }
     }
   }, [exerciseId]);
@@ -564,7 +577,10 @@ export default function ExercisePage({ params }: ExercisePageProps) {
         clearTimeout(canLoad3DTimerRef.current);
         canLoad3DTimerRef.current = null;
       }
-      setCanLoad3D(false);
+      // 비동기로 상태 업데이트하여 cascading render 방지
+      queueMicrotask(() => {
+        setCanLoad3D(false);
+      });
       return;
     }
 

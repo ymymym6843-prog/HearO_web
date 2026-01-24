@@ -10,3 +10,9 @@ export {
   default as ExerciseHUDDefault,
 } from './ExerciseHUD';
 export type { ExerciseHUDProps, XPPopupProps, ComboDisplayProps } from './ExerciseHUD';
+
+export {
+  DailyStatsDashboard,
+  default as DailyStatsDashboardDefault,
+} from './DailyStatsDashboard';
+export type { DailyStatsDashboardProps, DailyStats, WeeklyActivity } from './DailyStatsDashboard';

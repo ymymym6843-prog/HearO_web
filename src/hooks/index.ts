@@ -38,3 +38,11 @@ export type {
   UseVRMLoaderOptions,
   UseVRMLoaderReturn,
 } from './useVRMLoader';
+
+// 배경 이미지 관리 훅
+export { useBackground } from './useBackground';
+export type {
+  BackgroundPreference,
+  UseBackgroundOptions,
+  UseBackgroundReturn,
+} from './useBackground';
