@@ -51,9 +51,11 @@ export function VRMCharacter({
   // VRMA 애니메이션 훅
   const {
     isPlaying: isAnimationPlaying,
+    isFadingOut: isAnimationFadingOut,
     loadAnimation,
     play: playAnimation,
     stop: stopAnimation,
+    fadeOut: fadeOutAnimation,
     setLoop,
     update: updateAnimation,
     initialize: initializeAnimation,
@@ -110,12 +112,20 @@ export function VRMCharacter({
   useEffect(() => {
     if (animationUrl && loadedVRM) {
       handlePlayAnimation(animationUrl);
-    } else if (!animationUrl && isPlayingVRMA) {
-      // 애니메이션 URL이 null로 변경되면 중지
-      stopAnimation();
+    } else if (!animationUrl && isPlayingVRMA && !isAnimationFadingOut) {
+      // 애니메이션 URL이 null로 변경되면 부드럽게 페이드아웃
+      console.log('[VRMCharacter] Animation URL cleared, fading out...');
+      fadeOutAnimation(0.5);
+    }
+  }, [animationUrl, loadedVRM, handlePlayAnimation, fadeOutAnimation, isPlayingVRMA, isAnimationFadingOut]);
+
+  // 페이드아웃 완료 감지
+  useEffect(() => {
+    // 페이드아웃이 완료되었고 재생 중이 아니면 상태 리셋
+    if (isPlayingVRMA && !isAnimationPlaying && !isAnimationFadingOut) {
       setIsPlayingVRMA(false);
     }
-  }, [animationUrl, loadedVRM, handlePlayAnimation, stopAnimation, isPlayingVRMA]);
+  }, [isPlayingVRMA, isAnimationPlaying, isAnimationFadingOut]);
 
   // 표정 변경 처리
   useEffect(() => {
@@ -253,15 +263,22 @@ export function VRMCharacter({
       });
     }
 
-    // VRMA 애니메이션 업데이트
-    if (isPlayingVRMA) {
+    // VRMA 애니메이션 업데이트 (재생 중이거나 페이드아웃 중일 때)
+    if (isPlayingVRMA || isAnimationFadingOut) {
       updateAnimation(delta);
 
       // 애니메이션 종료 감지 (isAnimationPlaying이 true→false로 변할 때)
-      if (prevAnimationPlayingRef.current && !isAnimationPlaying) {
-        console.log('[VRMCharacter] Animation ended');
-        setIsPlayingVRMA(false);
+      // 페이드아웃 중이 아닐 때만 페이드아웃 시작
+      if (prevAnimationPlayingRef.current && !isAnimationPlaying && !isAnimationFadingOut) {
+        console.log('[VRMCharacter] Animation ended, starting fadeOut...');
+        fadeOutAnimation(0.5); // 0.5초 동안 부드럽게 페이드아웃
         onAnimationEnd?.();
+      }
+
+      // 페이드아웃이 완료되면 상태 리셋
+      if (isPlayingVRMA && !isAnimationPlaying && !isAnimationFadingOut) {
+        console.log('[VRMCharacter] FadeOut complete, returning to idle');
+        setIsPlayingVRMA(false);
       }
     }
     prevAnimationPlayingRef.current = isAnimationPlaying;
