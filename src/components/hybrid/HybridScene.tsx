@@ -27,7 +27,7 @@ import type { WorldviewType } from '@/types/vrm';
 import type { PhaseType, TransitionConfig } from '@/types/phase';
 import type { WorldviewId } from '@/constants/worldviews';
 import type { LightingSettings, CameraAngle, SceneHelpers } from '@/types/scene';
-import type { AnimationPreset } from '@/components/three/VRMCharacter';
+import type { AnimationPreset, TrackingMode } from '@/components/three/VRMCharacter';
 
 // Components
 import { SkyboxBackground } from './SkyboxBackground';
@@ -88,6 +88,10 @@ interface HybridSceneProps {
   sceneHelpers?: SceneHelpers;
   /** VRM 애니메이션 프리셋 */
   animationPreset?: AnimationPreset;
+  /** VRM 추적 모드 (애니메이션 vs 포즈) */
+  trackingMode?: TrackingMode;
+  /** TTS 활성화 여부 */
+  enableTTS?: boolean;
   /** className */
   className?: string;
 }
@@ -116,6 +120,8 @@ export function HybridScene({
   cameraAngle,
   sceneHelpers,
   animationPreset = 'A',
+  trackingMode = 'animation',
+  enableTTS = false,
   className = '',
 }: HybridSceneProps) {
   const { current: currentPhase, setPhase, startTransition } = usePhaseStore();
@@ -234,6 +240,7 @@ export function HybridScene({
             cameraAngle={cameraAngle}
             sceneHelpers={sceneHelpers}
             animationPreset={animationPreset}
+            trackingMode={trackingMode}
           />
         </Canvas>
       </div>
@@ -275,6 +282,7 @@ export function HybridScene({
         {layers.vnDialogue && (
           <VNDialogueBox
             worldview={worldview}
+            enableTTS={enableTTS}
             onTransitionRequest={() => handleTransition('exercise')}
             onSkipAll={onDialogueSkip}
           />

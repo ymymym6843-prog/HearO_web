@@ -137,8 +137,8 @@ export const WORLDVIEWS: Record<WorldviewId, Worldview> = {
     theme: '정상을 향해 도전하는 운동선수',
     iconName: 'trophy',
     colors: {
-      primary: '#F97316',      // Orange (HearO-v2 동일)
-      secondary: '#FB923C',
+      primary: '#FBBF24',      // Yellow (themes.ts와 통일)
+      secondary: '#FCD34D',
       gradient: ['#1C1917', '#292524'],
     },
     cardImage: '/images/worldviews/sports_card.jpg',

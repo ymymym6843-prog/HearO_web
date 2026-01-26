@@ -12,10 +12,10 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useTheme, useDialogueBoxClass } from '@/contexts/ThemeContext';
 import type { WorldviewId } from '@/constants/worldviews';
-import { WORLDVIEW_TYPING_SPEEDS } from '@/constants/themes';
+import { useTypingAnimation } from '@/hooks/useTypingAnimation';
 
 // ============================================
 // Types
@@ -63,8 +63,23 @@ export function ThemedDialogueBox({
   const { theme, worldviewId } = useTheme();
   const dialogueClass = useDialogueBoxClass();
 
-  // 세계관별 기본 타이핑 속도 사용 (미지정시)
-  const effectiveTypingSpeed = typingSpeed ?? WORLDVIEW_TYPING_SPEEDS[worldviewId as keyof typeof WORLDVIEW_TYPING_SPEEDS] ?? 30;
+  // 새로운 통합 타이핑 애니메이션 훅 사용
+  const { displayedText, isTyping, skip } = useTypingAnimation({
+    text,
+    enabled: true,
+    onComplete,
+    customSpeed: typingSpeed, // undefined면 통합 속도(25ms) + 이징 사용
+  });
+
+  // 커서 깜빡임
+  const [showCursor, setShowCursor] = useState(true);
+  useEffect(() => {
+    const cursorTimer = setInterval(() => {
+      setShowCursor((prev) => !prev);
+    }, 500);
+
+    return () => clearInterval(cursorTimer);
+  }, []);
 
   // 햅틱 피드백 함수
   const triggerHaptic = useCallback(() => {
@@ -73,78 +88,18 @@ export function ThemedDialogueBox({
     }
   }, [hapticFeedback]);
 
-  const [displayedText, setDisplayedText] = useState('');
-  const [isTyping, setIsTyping] = useState(true);
-  const [showCursor, setShowCursor] = useState(true);
-
-  const fullTextRef = useRef(text);
-  const charIndexRef = useRef(0);
-  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const cursorTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 텍스트 변경 시 리셋 - 타이핑 애니메이션 초기화
-  useEffect(() => {
-    fullTextRef.current = text;
-    charIndexRef.current = 0;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDisplayedText('');
-    setIsTyping(true);
-  }, [text]);
-
-  // 타이핑 애니메이션
-  useEffect(() => {
-    if (!isTyping) return;
-
-    const typeNextChar = () => {
-      if (charIndexRef.current < fullTextRef.current.length) {
-        charIndexRef.current++;
-        setDisplayedText(fullTextRef.current.slice(0, charIndexRef.current));
-        typingTimerRef.current = setTimeout(typeNextChar, effectiveTypingSpeed);
-      } else {
-        setIsTyping(false);
-        onComplete?.();
-      }
-    };
-
-    typingTimerRef.current = setTimeout(typeNextChar, effectiveTypingSpeed);
-
-    return () => {
-      if (typingTimerRef.current) {
-        clearTimeout(typingTimerRef.current);
-      }
-    };
-  }, [isTyping, effectiveTypingSpeed, onComplete]);
-
-  // 커서 깜빡임
-  useEffect(() => {
-    cursorTimerRef.current = setInterval(() => {
-      setShowCursor((prev) => !prev);
-    }, 500);
-
-    return () => {
-      if (cursorTimerRef.current) {
-        clearInterval(cursorTimerRef.current);
-      }
-    };
-  }, []);
-
-  // 스킵 처리
+  // 스킵/다음 처리
   const handleClick = useCallback(() => {
     triggerHaptic();
 
     if (isTyping && skippable) {
       // 타이핑 중이면 스킵
-      if (typingTimerRef.current) {
-        clearTimeout(typingTimerRef.current);
-      }
-      setDisplayedText(fullTextRef.current);
-      setIsTyping(false);
-      onComplete?.();
+      skip();
     } else if (!isTyping) {
       // 타이핑 완료면 다음으로
       onClick?.();
     }
-  }, [isTyping, skippable, onComplete, onClick, triggerHaptic]);
+  }, [isTyping, skippable, skip, onClick, triggerHaptic]);
 
   // 세계관별 추가 요소
   const renderWorldviewEffects = () => {

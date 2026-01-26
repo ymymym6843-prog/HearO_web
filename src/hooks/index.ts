@@ -46,3 +46,10 @@ export type {
   UseBackgroundOptions,
   UseBackgroundReturn,
 } from './useBackground';
+
+// 타이핑 애니메이션 훅
+export { useTypingAnimation } from './useTypingAnimation';
+
+// 음성 인식 명령 훅
+export { useVoiceCommands } from './useVoiceCommands';
+export type { VoiceCommandType } from './useVoiceCommands';

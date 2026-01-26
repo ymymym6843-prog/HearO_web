@@ -664,17 +664,47 @@ export const WORLDVIEW_UI_STYLES: Record<WorldviewType, UIStyleConfig> = {
 };
 
 /**
+ * 통합 타이핑 설정 (v2 - 세계관 분리 제거)
+ * 빠르고 리듬감 있는 타이핑으로 UX 몰입도 향상
+ */
+export const TYPING_CONFIG = {
+  // 기본 속도 (ms per character) - 빠르고 리듬감 있게
+  baseSpeed: 25,
+
+  // 구두점별 추가 딜레이 (자연스러운 리듬)
+  punctuationDelay: {
+    '.': 150,    // 마침표
+    '!': 150,    // 느낌표
+    '?': 150,    // 물음표
+    ',': 80,     // 쉼표
+    ':': 80,     // 콜론
+    ';': 80,     // 세미콜론
+    '…': 200,   // 말줄임표
+    '—': 100,   // 대시
+    '\n': 100,  // 줄바꿈
+  } as Record<string, number>,
+
+  // 이징 함수 타입
+  easing: 'easeOut' as 'linear' | 'easeOut' | 'easeInOut',
+
+  // 가속 설정 (이징 적용 시)
+  acceleration: {
+    startMultiplier: 0.7,   // 초반 속도 배율 (빠름)
+    endMultiplier: 1.1,     // 후반 속도 배율 (약간 느림)
+  },
+} as const;
+
+/**
  * 세계관별 타이핑 속도 (ms per character)
- * - 서사적 분위기: 느리게 (40-60ms)
- * - 역동적 분위기: 빠르게 (20-30ms)
+ * @deprecated TYPING_CONFIG.baseSpeed를 사용하세요 - 통합 속도로 변경됨
  */
 export const WORLDVIEW_TYPING_SPEEDS: Record<WorldviewType, number> = {
-  fantasy: 40,   // 느리게 (서사적)
-  sports: 20,    // 빠르게 (역동적)
-  idol: 35,      // 보통 (경쾌함)
-  sf: 25,        // 빠르게 (기술적)
-  zombie: 60,    // 매우 느리게 (긴장감)
-  spy: 30,       // 보통 (스릴러)
+  fantasy: TYPING_CONFIG.baseSpeed,
+  sports: TYPING_CONFIG.baseSpeed,
+  idol: TYPING_CONFIG.baseSpeed,
+  sf: TYPING_CONFIG.baseSpeed,
+  zombie: TYPING_CONFIG.baseSpeed,
+  spy: TYPING_CONFIG.baseSpeed,
 };
 
 /**

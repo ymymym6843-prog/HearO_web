@@ -29,6 +29,7 @@ import {
 } from '@/components/exercise';
 import { sfxService } from '@/services/sfxService';
 import { ttsService } from '@/services/ttsService';
+import { useBGM } from '@/contexts/BGMContext';
 import { storyService } from '@/services/storyService';
 import { hapticService } from '@/services/hapticService';
 import {
@@ -44,9 +45,10 @@ import type { ExerciseType, ExercisePhase, PerformanceRating } from '@/types/exe
 import type { Landmark } from '@/types/pose';
 import { MediaErrorBoundary } from '@/components/common';
 import { Icon } from '@/components/ui/Icon';
+import { VoiceCommandButton } from '@/components/ui/VoiceCommandButton';
 import { useSceneSettings } from '@/hooks/useSceneSettings';
 import { SceneSettingsPanel } from '@/components/three/SceneSettingsPanel';
-import type { AnimationPreset } from '@/components/three/VRMCharacter';
+import type { AnimationPreset, TrackingMode } from '@/components/three/VRMCharacter';
 
 // HybridScene 컴포넌트 (lazy load)
 const HybridScene = dynamic(() => import('@/components/hybrid/HybridScene'), { ssr: false });
@@ -192,7 +194,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const {
     resetCalibration,
   } = useCharacterStore();
-  const { show3DCharacter, updateSetting } = useSettingsStore();
+  const { show3DCharacter, ttsEnabled, updateSetting } = useSettingsStore();
 
   // Phase Store (HybridScene용)
   const {
@@ -204,6 +206,9 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const currentWorkflowPhase = useCurrentPhase();
   const layers = useLayerVisibility();
 
+  // BGM Context (전역 BGM 관리)
+  const { playBGM, crossFadeTo, fadeOut: fadeOutBGM, stop: stopBGM, init: initBGM } = useBGM();
+
   // 로컬 상태
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showNPCDialogue, setShowNPCDialogue] = useState(false);
@@ -214,6 +219,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const [completionStory, setCompletionStory] = useState<string>('');
   const [detectorError, setDetectorError] = useState<string | null>(null);
   const [animationPreset, setAnimationPreset] = useState<AnimationPreset>('A'); // 기본: 등장 → 대기
+  const [trackingMode, setTrackingMode] = useState<TrackingMode>('animation'); // 기본: 애니메이션 모드
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveredReps, setRecoveredReps] = useState(0);
 
@@ -296,7 +302,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     };
   }, [exerciseId, setExercise]);
 
-  // 페이지 로드 시 intro phase로 시작 + 대화 시작
+  // 페이지 로드 시 intro phase로 시작 + 대화 시작 + BGM 시작
   useEffect(() => {
     // Phase를 intro로 설정
     setWorkflowPhase('intro');
@@ -305,13 +311,18 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     const dialogueSequence = createExerciseIntroDialogue(currentWorldview, exerciseId);
     startDialogue(dialogueSequence);
 
+    // BGM 초기화 및 스토리 BGM 시작 (프롤로그부터 재생)
+    initBGM().then(() => {
+      playBGM(currentWorldview, 'story_bgm');
+    });
+
     return () => {
       // 컴포넌트 언마운트 시 정리
-      sfxService.stopBGM();
+      stopBGM();
       ttsService.stop();
       sessionRecoveryService.stopAutoSave();
     };
-  }, [currentWorldview, exerciseId, setWorkflowPhase, startDialogue]);
+  }, [currentWorldview, exerciseId, setWorkflowPhase, startDialogue, initBGM, playBGM, stopBGM]);
 
   // 카운트다운 시작 (대화 완료 또는 스킵 버튼 클릭 시)
   const handleStartCountdown = useCallback(() => {
@@ -329,6 +340,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
         startTransition('exercise', { duration: 1000 });
         // 애니메이션 중지 → Kalidokit (사용자 포즈 인식) 활성화
         setAnimationPreset('none');
+        // 추적 모드를 포즈로 변경 (운동 중 사용자 움직임 추적)
+        setTrackingMode('pose');
       } else if (event.type === 'TRANSITION_COMPLETE') {
         // 전환 완료 시 카운트다운 시작
         handleStartCountdown();
@@ -422,16 +435,20 @@ export default function ExercisePage({ params }: ExercisePageProps) {
         sessionStartTimeRef.current = Date.now();
         sessionRecoveryService.startAutoSave(getSessionState, 5000);
 
-        sfxService.playBGM(currentWorldview, 'exercise_bgm');
+        // 스토리 BGM → 운동 BGM으로 크로스페이드 (끊김 없음)
+        crossFadeTo(currentWorldview, 'exercise_bgm', 2000);
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [countdown, startSession, info.targetReps, currentWorldview, getSessionState, recoveredReps, incrementReps]);
+  }, [countdown, startSession, info.targetReps, currentWorldview, getSessionState, recoveredReps, incrementReps, crossFadeTo]);
 
   // 운동 완료 처리
   const handleExerciseComplete = useCallback(async (rating: PerformanceRating) => {
     setPerformanceRating(rating);
     setIsComplete(true);
+
+    // 완료 애니메이션 재생을 위해 추적 모드를 animation으로 전환
+    setTrackingMode('animation');
 
     const animationUrl = getRandomCompletionAnimation(rating);
     setVrmAnimationUrl(animationUrl);
@@ -442,7 +459,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     sessionRecoveryService.stopAutoSave();
     sessionRecoveryService.clearSessionState();
 
-    sfxService.fadeOutBGM(1000);
+    // BGM 페이드아웃 (전역 Context 사용)
+    fadeOutBGM(1500);
     sfxService.playExerciseCompleteSFX();
     hapticService.exerciseComplete();
 
@@ -542,10 +560,38 @@ export default function ExercisePage({ params }: ExercisePageProps) {
 
   // 종료
   const handleEnd = () => {
-    sfxService.stopBGM();
+    stopBGM();
     ttsService.stop();
     router.push('/exercise');
   };
+
+  // 음성 명령 핸들러들
+  const handleVoiceStart = useCallback(() => {
+    if (currentWorkflowPhase === 'intro') {
+      // 인트로에서 시작 명령 → 대화 스킵 후 운동 시작
+      startTransition('exercise', { duration: 500 });
+      setAnimationPreset('none');
+    }
+  }, [currentWorkflowPhase, startTransition]);
+
+  const handleVoiceNext = useCallback(() => {
+    // 다음 명령 처리 (필요시 구현)
+    console.log('[Voice] Next command');
+  }, []);
+
+  const handleVoicePause = useCallback(() => {
+    if (isActive) {
+      setPhase('rest');
+    }
+  }, [isActive, setPhase]);
+
+  const handleVoiceRestart = useCallback(() => {
+    // 현재 세트 재시작
+    if (isActive) {
+      // 횟수 초기화 등 필요한 로직
+      console.log('[Voice] Restart command');
+    }
+  }, [isActive]);
 
   // 운동 중인지 여부 (exercise phase + 카운트다운 완료)
   const isExercising = currentWorkflowPhase === 'exercise' && countdown === null && isActive;
@@ -566,6 +612,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
         cameraAngle={sceneSettings.cameraAngle}
         sceneHelpers={sceneSettings.helpers}
         animationPreset={animationPreset}
+        trackingMode={trackingMode}
+        enableTTS={ttsEnabled}
         className="absolute inset-0"
       >
         {/* Children: 운동 UI 오버레이 */}
@@ -597,14 +645,30 @@ export default function ExercisePage({ params }: ExercisePageProps) {
               onClick={() => setShowSceneSettings(!showSceneSettings)}
               className={`p-2 rounded-full backdrop-blur-sm transition-colors ${
                 showSceneSettings
-                  ? 'bg-purple-500/50 text-white'
+                  ? 'text-white'
                   : 'bg-black/30 text-white/70 hover:bg-black/50'
               }`}
+              style={showSceneSettings ? { backgroundColor: `${colors.primary}80` } : undefined}
               title="씬 설정"
             >
               <Icon name="settings-outline" size={18} color={showSceneSettings ? '#FFFFFF' : '#FFFFFF99'} />
             </button>
           )}
+
+          {/* TTS 토글 (프롤로그 + 운동 모든 phase에서 표시) */}
+          <button
+            onClick={() => updateSetting('ttsEnabled', !ttsEnabled)}
+            className={`px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 transition-colors ${
+              ttsEnabled
+                ? 'text-white'
+                : 'bg-black/30 text-white/70 hover:bg-black/50'
+            }`}
+            style={ttsEnabled ? { backgroundColor: `${colors.primary}80` } : undefined}
+            title={ttsEnabled ? 'TTS 끄기' : 'TTS 켜기'}
+          >
+            <Icon name={ttsEnabled ? 'volume-high-outline' : 'volume-mute-outline'} size={18} color={ttsEnabled ? '#FFFFFF' : '#FFFFFF99'} />
+            <span className="text-sm font-medium">TTS</span>
+          </button>
 
           {/* exercise phase에서 3D 토글 */}
           {currentWorkflowPhase === 'exercise' && (
@@ -612,9 +676,10 @@ export default function ExercisePage({ params }: ExercisePageProps) {
               onClick={() => updateSetting('show3DCharacter', !show3DCharacter)}
               className={`px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 transition-colors ${
                 show3DCharacter
-                  ? 'bg-purple-500/50 text-white'
+                  ? 'text-white'
                   : 'bg-black/30 text-white/70 hover:bg-black/50'
               }`}
+              style={show3DCharacter ? { backgroundColor: `${colors.primary}80` } : undefined}
               title={show3DCharacter ? '3D 캐릭터 끄기' : '3D 캐릭터 켜기'}
             >
               <Icon name="cube-outline" size={18} color={show3DCharacter ? '#FFFFFF' : '#FFFFFF99'} />
@@ -874,7 +939,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
             emotion={npcEmotion}
             dialogue={npcDialogue}
             position="left"
-            ttsEnabled={true}
+            ttsEnabled={ttsEnabled}
             autoHideDelay={0}
             visible={showNPCDialogue}
             onTap={() => setShowNPCDialogue(false)}
@@ -902,6 +967,9 @@ export default function ExercisePage({ params }: ExercisePageProps) {
             setIsComplete(false);
             setShowNPCDialogue(false);
             setCompletionStory('');
+            // 추적 모드와 애니메이션 프리셋 리셋
+            setTrackingMode('animation');
+            setAnimationPreset('A');
             // intro로 다시 시작
             setWorkflowPhase('intro');
             const dialogueSequence = createExerciseIntroDialogue(currentWorldview, exerciseId);
@@ -916,6 +984,18 @@ export default function ExercisePage({ params }: ExercisePageProps) {
           exerciseName={info.koreanName}
           onRecover={handleSessionRecover}
           onDiscard={handleSessionDiscard}
+        />
+      )}
+
+      {/* 음성 명령 버튼 - 운동 화면에서 표시 */}
+      {currentWorkflowPhase === 'exercise' && !isComplete && (
+        <VoiceCommandButton
+          onStart={handleVoiceStart}
+          onNext={handleVoiceNext}
+          onPause={handleVoicePause}
+          onRestart={handleVoiceRestart}
+          className="fixed bottom-24 right-4 z-50"
+          size="lg"
         />
       )}
     </div>

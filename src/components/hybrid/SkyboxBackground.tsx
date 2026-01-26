@@ -93,7 +93,7 @@ export function SkyboxBackground({
   imageUrl,
   visible = true,
   radius = 50,
-  rotationSpeed = 0.0005,  // 기본: 천천히 회전 (운동 중 방해 안됨)
+  rotationSpeed = 0.001,  // 기본: 천천히 회전 (이전 0.0005 → 0.001로 상향)
 }: SkyboxBackgroundProps) {
   if (!visible) return null;
 

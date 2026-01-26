@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/common/Toast";
+import { BGMProvider } from "@/contexts/BGMContext";
 
 const notoSansKr = Noto_Sans_KR({
   variable: "--font-noto-sans-kr",
@@ -41,9 +42,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <BGMProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </BGMProvider>
       </body>
     </html>
   );

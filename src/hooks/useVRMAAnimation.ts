@@ -42,7 +42,7 @@ export interface UseVRMAAnimationReturn {
   pause: () => void;
   stop: () => void;
   fadeOut: (duration?: number) => void; // 부드러운 페이드아웃
-  setLoop: (loop: boolean) => void;
+  setLoop: (loop: boolean, repeatCount?: number) => void;
 
   // Mixer 관련
   getMixer: () => THREE.AnimationMixer | null;
@@ -82,6 +82,7 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
   const currentClipRef = useRef<THREE.AnimationClip | null>(null);
   const loaderRef = useRef<GLTFLoader | null>(null);
   const loopRef = useRef<boolean>(true);
+  const repeatCountRef = useRef<number>(Infinity); // 반복 횟수 (기본: 무한)
   const fadeOutTimerRef = useRef<number | null>(null);
   const onFinishedCallbackRef = useRef<(() => void) | null>(null);
   const expectedActionRef = useRef<THREE.AnimationAction | null>(null); // 콜백 대기 중인 액션
@@ -208,15 +209,23 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
 
       // 새 애니메이션 액션 생성
       const newAction = mixerRef.current!.clipAction(clip);
-      newAction.setLoop(loopRef.current ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
-      newAction.clampWhenFinished = true;
+      // ※ 루프 설정: repeatCountRef로 반복 횟수 제한 (유한하면 finished 이벤트 발생)
+      if (loopRef.current) {
+        newAction.setLoop(THREE.LoopRepeat, repeatCountRef.current);
+      } else {
+        newAction.setLoop(THREE.LoopOnce, 1);
+      }
+      newAction.clampWhenFinished = true; // 애니메이션 종료 시 마지막 프레임 유지
       newAction.timeScale = 1.0; // 정상 속도 보장
 
-      // onFinished 콜백 저장 (루프가 아닌 경우에만)
-      if (options?.onFinished && !loopRef.current) {
+      // onFinished 콜백 저장
+      // ※ 1회 재생(LoopOnce) 또는 유한 반복(LoopRepeat + repeatCount < Infinity)일 때
+      //    THREE.AnimationMixer가 finished 이벤트를 발생시키므로 콜백 등록 가능
+      const isFinite = !loopRef.current || repeatCountRef.current < Infinity;
+      if (options?.onFinished && isFinite) {
         onFinishedCallbackRef.current = options.onFinished;
         expectedActionRef.current = newAction; // 이 액션이 끝날 때 콜백 실행
-        console.log('[useVRMAAnimation] Callback registered for action, waiting for duration:', clip.duration);
+        console.log('[useVRMAAnimation] Callback registered for action, duration:', clip.duration, 'repeat:', repeatCountRef.current);
       } else {
         onFinishedCallbackRef.current = null;
         expectedActionRef.current = null;
@@ -377,12 +386,22 @@ export function useVRMAAnimation(): UseVRMAAnimationReturn {
   }, []);
 
   // 루프 설정
-  const setLoop = useCallback((loop: boolean) => {
+  // repeatCount: 반복 횟수 (기본: Infinity = 무한, 1~N = 유한 반복)
+  // ※ 유한 반복 시 THREE.AnimationMixer가 finished 이벤트를 정상 발생시킴
+  const setLoop = useCallback((loop: boolean, repeatCount: number = Infinity) => {
     loopRef.current = loop;
+    repeatCountRef.current = repeatCount; // 다음 loadAnimation에서도 적용되도록 저장
     if (currentActionRef.current) {
-      currentActionRef.current.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+      if (loop) {
+        // 루프 모드: 지정된 횟수만큼 반복 (Infinity면 무한)
+        currentActionRef.current.setLoop(THREE.LoopRepeat, repeatCount);
+        console.log(`[useVRMAAnimation] Loop: ON (repeat ${repeatCount === Infinity ? '∞' : repeatCount} times)`);
+      } else {
+        // 1회 재생 모드
+        currentActionRef.current.setLoop(THREE.LoopOnce, 1);
+        console.log('[useVRMAAnimation] Loop: OFF (play once)');
+      }
     }
-    console.log(`[useVRMAAnimation] Loop: ${loop ? 'ON' : 'OFF'}`);
   }, []);
 
   // Mixer 업데이트 (애니메이션 루프에서 호출)

@@ -10,7 +10,7 @@
 import React, { Suspense, useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { VRMCharacter, type AnimationPreset } from '@/components/three/VRMCharacter';
+import { VRMCharacter, type AnimationPreset, type TrackingMode } from '@/components/three/VRMCharacter';
 import type { ExpressionState } from '@/services/vrmFeedbackService';
 import type { LightingSettings, CameraAngle, SceneHelpers } from '@/types/scene';
 import { CAMERA_PRESETS, LIGHTING_PRESETS } from '@/types/scene';
@@ -30,6 +30,8 @@ interface VRMSceneProps {
   expression?: ExpressionState | null;
   /** 애니메이션 프리셋 (초기 등장 + Idle) */
   animationPreset?: AnimationPreset;
+  /** 추적 모드 (애니메이션 vs 포즈) */
+  trackingMode?: TrackingMode;
   /** 조명 설정 */
   lightingSettings?: LightingSettings;
   /** 카메라 앵글 */
@@ -64,6 +66,7 @@ export function VRMScene({
   animationUrl,
   expression,
   animationPreset = 'A',
+  trackingMode = 'animation',
   lightingSettings,
   cameraAngle,
   sceneHelpers,
@@ -175,6 +178,7 @@ export function VRMScene({
               onLoaded={onLoaded}
               animationUrl={animationUrl}
               animationPreset={animationPreset}
+              trackingMode={trackingMode}
               expression={expression}
             />
           </Suspense>
