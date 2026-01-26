@@ -16,7 +16,8 @@ import { calculateHybridAngle } from '@/lib/calibration/depthCorrection';
 const SQUAT_DEFAULTS = {
   startAngle: 160,       // 시작 각도 (서있는 자세, 약간 완화)
   targetAngle: 100,      // 목표 각도 (재활용: 풀스쿼트 대신 하프스쿼트)
-  tolerance: 20,         // 허용 오차 (재활: 더 넓은 범위)
+  completionTolerance: 30, // 목표 도달 허용 오차 (관대하게: 100+30=130 이하면 도달)
+  returnTolerance: 25,    // 복귀 판정 허용 오차 (관대하게: 160-25=135 이상이면 복귀)
   holdTime: 0.5,         // 홀드 시간 (재활: 잠시 유지)
 };
 
@@ -31,20 +32,20 @@ export class SquatDetector extends BaseDetector {
       adaptiveScale: 0.4,
     });
 
-    // 기본 임계값 설정
+    // 기본 임계값 설정 (관대한 판정으로 카운트 누락 방지)
     this.thresholds = {
       startAngle: {
         center: SQUAT_DEFAULTS.startAngle,
-        min: SQUAT_DEFAULTS.startAngle - SQUAT_DEFAULTS.tolerance,
+        min: SQUAT_DEFAULTS.startAngle - SQUAT_DEFAULTS.returnTolerance,
         max: 180,
       },
       targetAngle: SQUAT_DEFAULTS.targetAngle,
       completionThreshold: {
-        minAngle: SQUAT_DEFAULTS.targetAngle + SQUAT_DEFAULTS.tolerance,
+        minAngle: SQUAT_DEFAULTS.targetAngle + SQUAT_DEFAULTS.completionTolerance, // 130 (was 120)
         holdTime: SQUAT_DEFAULTS.holdTime,
       },
       returnThreshold: {
-        maxAngle: SQUAT_DEFAULTS.startAngle - SQUAT_DEFAULTS.tolerance,
+        maxAngle: SQUAT_DEFAULTS.startAngle - SQUAT_DEFAULTS.returnTolerance, // 135 (was 140)
       },
       totalROM: SQUAT_DEFAULTS.startAngle - SQUAT_DEFAULTS.targetAngle,
       calculatedAt: new Date(),
@@ -208,8 +209,8 @@ export class SquatDetector extends BaseDetector {
     if (transition?.to === 'COOLDOWN') {
       const accuracy = this.repAccuracies[this.repAccuracies.length - 1] || 0;
       if (accuracy >= 90) return '완벽한 스쿼트!';
-      if (accuracy >= 70) return '좋아요! 조금 더 깊게!';
-      return '다음엔 더 깊이 앉아보세요';
+      if (accuracy >= 70) return '좋아요! 잘하고 있어요!';
+      return '잘했어요! 조금만 더 내려가면 완벽해요!';
     }
 
     switch (this.currentPhase) {
@@ -218,12 +219,12 @@ export class SquatDetector extends BaseDetector {
       case 'READY':
         return '천천히 앉기 시작!';
       case 'MOVING':
-        if (progress < 0.3) return '더 깊이 앉아주세요';
+        if (progress < 0.3) return '조금만 더 내려가 볼까요?';
         if (progress < 0.6) return '좋아요, 조금만 더!';
         if (progress < 0.9) return '거의 다 왔어요!';
         return '목표 도달!';
       case 'HOLDING':
-        return '잠시 유지!';
+        return '좋아요, 그 자세 유지!';
       case 'RETURNING':
         return '천천히 일어나세요';
       case 'COOLDOWN':

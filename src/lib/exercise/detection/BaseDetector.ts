@@ -111,7 +111,7 @@ export abstract class BaseDetector {
 
   /**
    * 프레임 처리 (메인 함수)
-   * MVP 개선: 각도 스무딩, visibility 0.6, 프레임 홀드
+   * MVP 개선: 각도 스무딩, visibility 0.4, 프레임 홀드 2
    */
   processFrame(landmarks: Landmark[]): DetectionResult {
     // 1. 관절 각도 계산
@@ -133,21 +133,22 @@ export abstract class BaseDetector {
     this.angleVelocity = angle - this.previousAngle;
     this.previousAngle = angle;
 
-    // 4. MVP: 신뢰도 임계값 0.6으로 상향
-    if (confidence < VISIBILITY_THRESHOLD) {
-      return this.createResult({
-        phase: this.currentPhase,
-        currentAngle: angle,
-        feedback: '카메라를 향해 서주세요',
-        confidence,
-      });
-    }
+    // 4. 신뢰도가 낮아도 상태 머신은 계속 실행 (카운트 누락 방지)
+    //    단, 피드백으로 자세 조정 안내
+    const isLowConfidence = confidence < VISIBILITY_THRESHOLD;
 
     // 5. 상태 머신 처리 (프레임 홀드 적용)
     const transition = this.processStateMachineWithHold(angle, confidence);
 
     // 6. 결과 생성
-    return this.createDetectionResult(angle, confidence, transition);
+    const result = this.createDetectionResult(angle, confidence, transition);
+
+    // 저신뢰도일 때 피드백 보충 (카운트는 정상 진행)
+    if (isLowConfidence && !transition) {
+      result.feedback = result.feedback || '카메라를 향해 서주세요';
+    }
+
+    return result;
   }
 
   /**
@@ -325,16 +326,27 @@ export abstract class BaseDetector {
 
   /**
    * 반복 정확도 계산
+   * progress 중심 + formScore (실제 ROM / 목표 ROM)
+   * 동작 완료 시 최소 60% 보장
    */
-  protected calculateRepAccuracy(angle: number, confidence: number): number {
+  protected calculateRepAccuracy(angle: number, _confidence: number): number {
     // 목표 도달률
     const progress = this.calculateProgress(angle);
 
-    // 안정성 (속도가 낮을수록 안정적)
-    const stability = Math.max(0, 1 - Math.abs(this.angleVelocity) / 10);
+    // formScore: 실제 ROM 대비 목표 ROM 비율
+    const totalROM = this.thresholds.totalROM || 1;
+    const actualROM = Math.abs(angle - this.thresholds.startAngle.center);
+    const formScore = Math.min(1, actualROM / totalROM);
 
-    // 종합 정확도
-    return Math.min(100, (progress * 0.6 + stability * 0.2 + confidence * 0.2) * 100);
+    // 종합 정확도 (progress 70% + formScore 30%)
+    const rawAccuracy = (progress * 0.7 + formScore * 0.3) * 100;
+
+    // 동작을 완료했으면 최소 60% 보장
+    if (progress >= 0.8) {
+      return Math.max(60, Math.min(100, rawAccuracy));
+    }
+
+    return Math.min(100, rawAccuracy);
   }
 
   /**
@@ -400,7 +412,7 @@ export abstract class BaseDetector {
       const accuracy = this.repAccuracies[this.repAccuracies.length - 1] || 0;
       if (accuracy >= 90) return '완벽해요!';
       if (accuracy >= 70) return '좋아요!';
-      return '다음엔 더 깊게!';
+      return '잘했어요! 다음엔 조금만 더!';
     }
 
     switch (this.currentPhase) {
@@ -409,11 +421,11 @@ export abstract class BaseDetector {
       case 'READY':
         return '준비 완료! 동작을 시작하세요';
       case 'MOVING':
-        if (progress < 0.5) return '더 움직여주세요';
+        if (progress < 0.5) return '조금만 더 움직여주세요';
         if (progress < 0.8) return '거의 다 왔어요!';
-        return '목표 위치로!';
+        return '목표에 가까워요!';
       case 'HOLDING':
-        return '유지하세요!';
+        return '좋아요, 그 자세 유지!';
       case 'RETURNING':
         return '천천히 돌아오세요';
       case 'COOLDOWN':

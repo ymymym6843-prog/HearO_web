@@ -68,11 +68,21 @@ Tempo_score = max(20 - tempo_error * k, 0)
 FormScore = ROM_score + ALIGN_score + Tempo_score
 ```
 
+### 현재 구현 (BaseDetector.calculateRepAccuracy)
+실제 코드에서는 간소화된 공식 사용:
+```python
+progress = calculateProgress(angle)  # 0~1
+formScore = min(1, actualROM / totalROM)
+rawAccuracy = (progress * 0.7 + formScore * 0.3) * 100
+# 동작 완료(progress >= 0.8) 시 최소 60% 보장
+accuracy = max(60, min(100, rawAccuracy)) if progress >= 0.8 else min(100, rawAccuracy)
+```
+
 ### UI 권장 피드백
-- 85~100: 🟢 아주 좋음
-- 70~84: 🟡 좋음(조금만 수정)
-- 50~69: 🟠 주의(폼 교정 필요)
-- <50: 🔴 위험/재시도
+- 85~100: 아주 좋음
+- 70~84: 좋음(조금만 수정)
+- 50~69: 주의(폼 교정 필요)
+- <50: 재시도
 
 ---
 

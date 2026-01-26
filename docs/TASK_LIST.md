@@ -8,14 +8,14 @@
 | VRM & Animation | 8 | 10 | 80% |
 | Theme System | 10 | 12 | 83% |
 | Exercise System | 18 | 18 | 100% |
-| TTS System | 6 | 9 | 67% |
+| TTS System | 8 | 9 | 89% |
 | Story & NPC | 8 | 9 | 89% |
 | Worldview Activation | 3 | 6 | 50% |
 | Performance | 7 | 9 | 78% |
 | Accessibility | 5 | 7 | 71% |
 | **Medical System (Phase 1)** | **12** | **14** | **86%** |
 | **Gamification (Phase 1)** | **6** | **6** | **100%** |
-| **Overall** | **90** | **112** | **80%** |
+| **Overall** | **92** | **112** | **82%** |
 
 ---
 
@@ -126,7 +126,8 @@
 | Prerendered TTS support | [x] | - | WAV files |
 | Usage quota tracking | [x] | - | Daily limits |
 | TTS audio player | [x] | - | Volume control |
-| Google Cloud TTS | [ ] | Medium | Additional provider |
+| Google Cloud TTS | [x] | - | Edge Function + hybridTTS 폴백 체인 |
+| VN 대화 hybridTTS 연결 | [x] | - | Gemini → Google Cloud → Web Speech |
 | TTS caching | [ ] | Medium | Offline support |
 | Voice selection | [ ] | Low | Per worldview |
 
@@ -225,7 +226,51 @@
 
 ---
 
-## Recent Changes (2026-01-24)
+## Recent Changes (2026-01-26)
+
+### BGM 시스템 수정 (P0)
+1. `BGMTrack` 타입 수정 (`BGMContext.tsx`)
+   - `'story_bgm' | 'exercise_bgm' | 'victory_bgm' | 'idle_bgm'` → `'prologue_bgm' | 'exercise_bgm'`
+   - 실제 오디오 파일명과 일치하도록 변경
+2. BGM 재생 안정화 (`BGMContext.tsx`)
+   - worldview null 가드 추가 (undefined 시 재생 방지)
+   - 동일 (worldview, track) 중복 재생 방지
+   - 진단 로그 추가: `[BGM][play] world=... track=... url=...`
+3. exercise 페이지 BGM 호출 수정 (`page.tsx`)
+   - `'story_bgm'` → `'prologue_bgm'` 변경
+   - worldview 확정 후에만 BGM 재생하도록 가드 추가
+   - `.catch()` 에러 핸들링 추가
+
+### TTS 폴백 체인 연결 (P0)
+1. VN 대화 TTS 교체 (`VNDialogueBox.tsx`)
+   - legacy `ttsService.speak()` → `hybridTTS.speakVNDialogue()` 교체
+   - Gemini → Google Cloud TTS → Web Speech API 폴백 체인 동작
+   - TTS 중지: `ttsService.stop()` → `stopHybridTTS()` 교체
+   - 진단 로그 추가: `[TTS][VN] world=... provider=... success=...`
+2. exercise 페이지 cleanup 수정 (`page.tsx`)
+   - cleanup/handleEnd에서 `stopHybridTTS()` 호출 추가
+
+### 운동 인식/카운트 개선 (P1)
+1. 감지 임계값 완화 (`utils.ts`)
+   - `VISIBILITY_THRESHOLD`: 0.6 → 0.4 (어두운 환경 대응)
+   - `FRAME_HOLD_THRESHOLD`: 3 → 2 (반응 속도 개선)
+2. 상태 머신 안정화 (`BaseDetector.ts`)
+   - 낮은 confidence에서도 상태 머신 계속 실행 (기존: early return으로 카운트 누락)
+   - accuracy 공식 변경: `(progress × 0.7 + formScore × 0.3)` + 최소 60% 보장
+   - formScore = 실제ROM / 목표ROM (얼마나 충분히 동작했는지)
+3. 스쿼트 감지 완화 (`SquatDetector.ts`)
+   - completionTolerance: 20 → 30 (목표 도달 판정 120° → 130°)
+   - returnTolerance: 20 → 25 (복귀 판정 140° → 135°)
+4. 팔꿈치 굽히기 감지 완화 (`ElbowFlexionDetector.ts`)
+   - completionTolerance: 15 → 25 (목표 도달 판정 65° → 75°)
+   - returnTolerance: 15 → 20 (복귀 판정 145° → 140°)
+
+### ESLint 에러 수정
+1. `handleExerciseComplete` 의존성 배열에 `fadeOutBGM` 추가 (pre-existing 에러 해결)
+
+---
+
+## Previous Changes (2026-01-24)
 
 ### Code Quality Improvements - ESLint 경고 완전 제거 (NEW)
 1. **ESLint 설정 개선** (`eslint.config.mjs`)
@@ -380,6 +425,10 @@
 20. **Fixed all ESLint warnings (77개)** - 코드 품질 대폭 개선
 21. **Fixed anonymous default exports** - 10+ 서비스 파일 수정
 22. **Fixed useEffect/useCallback dependencies** - React hooks 규칙 준수
+23. **Fixed BGM track name mismatch** - `story_bgm` → `prologue_bgm` (파일명 불일치로 404)
+24. **Fixed TTS using wrong service** - VN 대화에서 legacy Web Speech → hybridTTS 폴백 체인
+25. **Fixed exercise rep count not incrementing** - visibility 임계값 과도, 상태 머신 early return 수정
+26. **Fixed handleExerciseComplete missing dependency** - `fadeOutBGM` 의존성 누락 ESLint 에러
 
 ### New Features (Earlier)
 1. Worldview-specific typing speeds
@@ -400,7 +449,7 @@
 3. [ ] Memory leak detection
 
 ### Medium
-1. [ ] Google Cloud TTS integration
+1. [x] ~~Google Cloud TTS integration~~ - ✅ hybridTTS 폴백 체인에 통합 완료
 2. [ ] VRM model caching
 3. [ ] Dark mode per worldview
 4. [ ] Bundle size optimization
@@ -419,7 +468,7 @@ Build Status: SUCCESS
 TypeScript Errors: 0
 ESLint Warnings: 0 ✨
 Static Pages: 20
-Last Build: 2026-01-24
+Last Build: 2026-01-26
 ```
 
 ---
@@ -471,4 +520,4 @@ public/
 
 ---
 
-*Last updated: 2026-01-24 (ESLint 경고 완전 제거 + 코드 품질 최적화)*
+*Last updated: 2026-01-26 (BGM/TTS 수정, 운동 인식 개선, ESLint 에러 해결)*

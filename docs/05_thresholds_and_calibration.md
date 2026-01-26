@@ -14,7 +14,7 @@
 
 | 운동 | 핵심 지표 | DOWN(초기) | UP(초기) | 비고 |
 |----|---------|-----------|---------|-----|
-| squat | 무릎각(°) | >160 | <90 | 얕은 스쿼트는 <110 허용 |
+| squat | 무릎각(°) | >160 | <100 | 재활용 하프스쿼트, completionThreshold=130, returnThreshold=135 |
 | wall_squat | 무릎각(°) | 110 | 80 | **홀드 구간** |
 | chair_stand | hip.y-knee.y | >0.08 | <0.02 | y축 기준, 정규화 필요 |
 | straight_leg_raise | hip.y-ankle.y | <0.02 | >0.10 | 반복/홀드 모두 가능 |
@@ -29,7 +29,7 @@
 |----|---------|------|----|---------|
 | standing_arm_raise_front | 손목-어깨(y) | <0.02 | >0.12 | 팔꿈치각 >150° |
 | shoulder_abduction | |wr.x-sh.x| | <0.05 | >0.15 | 팔꿈치각 |
-| elbow_flexion | 팔꿈치각(°) | >160 | <60 | 상완 고정 |
+| elbow_flexion | 팔꿈치각(°) | >160 | <50 | 상완 고정, completionThreshold=75, returnThreshold=140 |
 | wall_push | 팔꿈치각(°) | >150 | <90 | 체간 기울기 |
 
 ---

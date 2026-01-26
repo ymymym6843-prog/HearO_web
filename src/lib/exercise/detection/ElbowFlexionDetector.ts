@@ -13,12 +13,13 @@ import { PoseLandmark } from '@/types/pose';
 import { BaseDetector, type ExercisePhase } from './BaseDetector';
 import { calculateJointAngle, type JointIndices } from './utils';
 
-// 팔꿈치 굽히기 기본 설정
+// 팔꿈치 굽히기 기본 설정 (관대한 판정)
 const ELBOW_FLEXION_DEFAULTS = {
-  startAngle: 160,        // 시작 각도 (팔 펴진 상태)
-  targetAngle: 50,        // 목표 각도 (팔 굽힌 상태)
-  tolerance: 15,          // 허용 오차
-  holdTime: 0.5,          // 홀드 시간
+  startAngle: 160,          // 시작 각도 (팔 펴진 상태)
+  targetAngle: 50,          // 목표 각도 (팔 굽힌 상태)
+  completionTolerance: 25,  // 목표 도달 허용 오차 (50+25=75 이하면 도달)
+  returnTolerance: 20,      // 복귀 판정 허용 오차 (160-20=140 이상이면 복귀)
+  holdTime: 0.5,            // 홀드 시간
 };
 
 export class ElbowFlexionDetector extends BaseDetector {
@@ -31,20 +32,20 @@ export class ElbowFlexionDetector extends BaseDetector {
       adaptiveScale: 0.4,
     });
 
-    // 임계값 설정 (big_is_down 모드: 값이 클수록 DOWN/펴진 상태)
+    // 임계값 설정 (big_is_down 모드: 관대한 판정으로 카운트 누락 방지)
     this.thresholds = {
       startAngle: {
         center: ELBOW_FLEXION_DEFAULTS.startAngle,
-        min: ELBOW_FLEXION_DEFAULTS.startAngle - ELBOW_FLEXION_DEFAULTS.tolerance,
+        min: ELBOW_FLEXION_DEFAULTS.startAngle - ELBOW_FLEXION_DEFAULTS.returnTolerance,
         max: 180,
       },
       targetAngle: ELBOW_FLEXION_DEFAULTS.targetAngle,
       completionThreshold: {
-        minAngle: ELBOW_FLEXION_DEFAULTS.targetAngle + ELBOW_FLEXION_DEFAULTS.tolerance,
+        minAngle: ELBOW_FLEXION_DEFAULTS.targetAngle + ELBOW_FLEXION_DEFAULTS.completionTolerance, // 75 (was 65)
         holdTime: ELBOW_FLEXION_DEFAULTS.holdTime,
       },
       returnThreshold: {
-        maxAngle: ELBOW_FLEXION_DEFAULTS.startAngle - ELBOW_FLEXION_DEFAULTS.tolerance,
+        maxAngle: ELBOW_FLEXION_DEFAULTS.startAngle - ELBOW_FLEXION_DEFAULTS.returnTolerance, // 140 (was 145)
       },
       totalROM: ELBOW_FLEXION_DEFAULTS.startAngle - ELBOW_FLEXION_DEFAULTS.targetAngle,
       calculatedAt: new Date(),

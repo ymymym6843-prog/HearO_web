@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { WorldviewType } from '@/types/vrm';
 import { usePhaseStore, useDialogue } from '@/stores/usePhaseStore';
 import { getMainNPC, getNPCImagePath, NPC_CHARACTERS, type NPCCharacter, type NPCEmotion } from '@/constants/npcCharacters';
-import { ttsService } from '@/services/ttsService';
+import { speakVNDialogue, stop as stopHybridTTS } from '@/services/tts/hybridTTS';
 
 // ============================================
 // Props & Types
@@ -198,7 +198,7 @@ export function VNDialogueBox({
 
     // TTS 중지
     if (isSpeaking) {
-      ttsService.stop();
+      void stopHybridTTS();
       setIsSpeaking(false);
     }
 
@@ -231,7 +231,7 @@ export function VNDialogueBox({
 
     // TTS 중지
     if (isSpeaking) {
-      ttsService.stop();
+      void stopHybridTTS();
       setIsSpeaking(false);
     }
 
@@ -305,12 +305,19 @@ export function VNDialogueBox({
       typingTimerRef.current = requestAnimationFrame(typeNextChar);
     }, 50);
 
-    // TTS 재생
+    // TTS 재생 (hybridTTS - Gemini → Google Cloud → Web Speech 폴백)
     if (enableTTS && currentEntry?.tts !== false) {
       setIsSpeaking(true);
-      ttsService.speak(currentText, () => {
-        setIsSpeaking(false);
-      });
+      speakVNDialogue(currentText, worldview)
+        .then((result) => {
+          console.log(`[TTS][VN] world=${worldview} provider=${result.provider} success=${result.success}`);
+          if (!result.success) {
+            console.warn(`[TTS] fail reason: ${result.error}`);
+          }
+        })
+        .finally(() => {
+          setIsSpeaking(false);
+        });
     }
 
     return () => {
@@ -319,7 +326,7 @@ export function VNDialogueBox({
         cancelAnimationFrame(typingTimerRef.current);
       }
     };
-  }, [currentText, enableTTS, currentEntry?.tts]);
+  }, [currentText, enableTTS, currentEntry?.tts, worldview]);
 
   /**
    * 자동 진행

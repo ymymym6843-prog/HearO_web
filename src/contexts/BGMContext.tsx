@@ -25,7 +25,7 @@ import type { WorldviewType } from '@/types';
 // Types
 // ============================================
 
-export type BGMTrack = 'story_bgm' | 'exercise_bgm' | 'victory_bgm' | 'idle_bgm';
+export type BGMTrack = 'prologue_bgm' | 'exercise_bgm';
 
 interface BGMState {
   currentTrack: BGMTrack | null;
@@ -161,6 +161,20 @@ export function BGMProvider({ children, initialVolume = 0.5 }: BGMProviderProps)
   // BGM 즉시 재생
   const playBGM = useCallback(
     async (worldview: WorldviewType, track: BGMTrack) => {
+      if (!worldview) {
+        console.error('[BGM] invalid world=undefined, skip');
+        return;
+      }
+
+      // 중복 요청 방지: 동일 (worldview, track) 재생 중이면 무시
+      if (
+        currentSourceRef.current?.track === track &&
+        currentSourceRef.current?.worldview === worldview
+      ) {
+        console.log(`[BGM] Already playing ${worldview}/${track}, skip`);
+        return;
+      }
+
       const ctx = await getAudioContext();
       if (!ctx) {
         console.warn('[BGM] AudioContext not available');
@@ -168,6 +182,7 @@ export function BGMProvider({ children, initialVolume = 0.5 }: BGMProviderProps)
       }
 
       const url = `/assets/sounds/${worldview}/${track}.wav`;
+      console.log(`[BGM][play] world=${worldview} track=${track} url=${url}`);
       const buffer = await loadAudioBuffer(url);
 
       if (!buffer) {
@@ -211,6 +226,11 @@ export function BGMProvider({ children, initialVolume = 0.5 }: BGMProviderProps)
   // 크로스페이드 전환 (끊김 없이)
   const crossFadeTo = useCallback(
     async (worldview: WorldviewType, track: BGMTrack, duration: number = 1500) => {
+      if (!worldview) {
+        console.error('[BGM] crossFadeTo: invalid world=undefined, skip');
+        return;
+      }
+
       // 같은 트랙이면 무시
       if (
         currentSourceRef.current?.track === track &&
@@ -223,6 +243,7 @@ export function BGMProvider({ children, initialVolume = 0.5 }: BGMProviderProps)
       if (!ctx) return;
 
       const url = `/assets/sounds/${worldview}/${track}.wav`;
+      console.log(`[BGM][crossFade] world=${worldview} track=${track} url=${url}`);
       const buffer = await loadAudioBuffer(url);
 
       if (!buffer) return;

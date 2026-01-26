@@ -7,8 +7,8 @@ import type { Landmark } from '@/types/pose';
 import { calculateHybridAngle } from '@/lib/calibration/depthCorrection';
 
 // MVP 상수
-export const VISIBILITY_THRESHOLD = 0.6; // 신뢰도 임계값 (기존 0.5 -> 0.6)
-export const FRAME_HOLD_THRESHOLD = 3;   // 상태 전환 전 프레임 유지 횟수
+export const VISIBILITY_THRESHOLD = 0.4; // 신뢰도 임계값 (0.6→0.4: 조명/각도 관대하게)
+export const FRAME_HOLD_THRESHOLD = 2;   // 상태 전환 전 프레임 유지 횟수 (3→2: 30fps 기준 ~67ms)
 export const ANGLE_SMOOTHING_WINDOW = 5; // 각도 스무딩 윈도우 크기
 
 /**

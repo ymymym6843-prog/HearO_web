@@ -29,6 +29,7 @@ import {
 } from '@/components/exercise';
 import { sfxService } from '@/services/sfxService';
 import { ttsService } from '@/services/ttsService';
+import { stop as stopHybridTTS } from '@/services/tts/hybridTTS';
 import { useBGM } from '@/contexts/BGMContext';
 import { storyService } from '@/services/storyService';
 import { hapticService } from '@/services/hapticService';
@@ -311,15 +312,20 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     const dialogueSequence = createExerciseIntroDialogue(currentWorldview, exerciseId);
     startDialogue(dialogueSequence);
 
-    // BGM 초기화 및 스토리 BGM 시작 (프롤로그부터 재생)
-    initBGM().then(() => {
-      playBGM(currentWorldview, 'story_bgm');
-    });
+    // BGM 초기화 및 프롤로그 BGM 시작
+    if (currentWorldview) {
+      initBGM().then(() => {
+        playBGM(currentWorldview, 'prologue_bgm');
+      }).catch((err) => {
+        console.error('[BGM] Failed to init/play prologue_bgm:', err);
+      });
+    }
 
     return () => {
       // 컴포넌트 언마운트 시 정리
       stopBGM();
       ttsService.stop();
+      stopHybridTTS().catch(() => {/* ignore cleanup errors */});
       sessionRecoveryService.stopAutoSave();
     };
   }, [currentWorldview, exerciseId, setWorkflowPhase, startDialogue, initBGM, playBGM, stopBGM]);
@@ -481,7 +487,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
       console.error('Failed to load story:', error);
       setCompletionStory(storyService.getDefaultStory(rating));
     }
-  }, [currentWorldview, exerciseId]);
+  }, [currentWorldview, exerciseId, fadeOutBGM]);
 
   // 운동 성공 시 효과음
   const playSuccessSFX = useCallback(() => {
@@ -562,6 +568,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const handleEnd = () => {
     stopBGM();
     ttsService.stop();
+    stopHybridTTS().catch(() => {/* ignore cleanup errors */});
     router.push('/exercise');
   };
 

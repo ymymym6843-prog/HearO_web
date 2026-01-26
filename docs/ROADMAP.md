@@ -20,9 +20,12 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - **TypeScript Errors**: 0
 - **ESLint Warnings**: 0 ✨
 - **Build**: Successful (20 static pages)
-- **Last Updated**: 2026-01-24
+- **Last Updated**: 2026-01-26
 
 ### Recent Major Updates
+- **BGM 시스템 수정**: 파일명 불일치(`story_bgm` → `prologue_bgm`) 해결, 중복 재생 방지, worldview 가드 추가
+- **TTS 폴백 체인 연결**: VN 대화에서 legacy Web Speech API → hybridTTS(Gemini → Google Cloud → Web Speech) 교체
+- **운동 인식/카운트 개선**: visibility 임계값 완화(0.6→0.4), 상태 머신 안정화, accuracy 공식 개선
 - **코드 품질 대폭 개선**: ESLint 경고 77개 → 0개 (100% 해결)
 - **VRM 애니메이션 시스템 안정화**: Race condition 수정, Kalidokit 간섭 방지
 - **Scene Settings Panel**: 조명, 카메라, 배경 실시간 조절
@@ -122,18 +125,19 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Phase 5: TTS System (90% Complete)
+## Phase 5: TTS System (95% Complete)
 
 ### Completed Tasks
 - [x] TTS Router with context-based provider selection
 - [x] Gemini TTS integration (Edge Function)
+- [x] Google Cloud TTS integration (Edge Function + hybridTTS 폴백 체인)
 - [x] Web Speech API fallback
 - [x] Prerendered TTS audio support
 - [x] Daily usage limits and quota tracking
 - [x] TTS audio player with volume control
+- [x] VN 대화에서 hybridTTS 연결 (Gemini → Google Cloud → Web Speech)
 
 ### Remaining Tasks
-- [ ] Google Cloud TTS integration
 - [ ] TTS caching for offline mode
 - [ ] Voice selection per worldview
 
@@ -260,11 +264,14 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 ## Technical Debt
 
 1. **VRM Loading**: Currently loads full model on each scene
-2. **TTS Fallback**: Google Cloud TTS not yet integrated
-3. **Offline Mode**: Limited offline functionality
-4. **Test Coverage**: Unit tests needed for core services
+2. **Offline Mode**: Limited offline functionality
+3. **Test Coverage**: Unit tests needed for core services
 
 ### Recently Resolved
+- ~~**BGM 파일명 불일치**~~: `story_bgm` → `prologue_bgm` 수정, worldview 가드 및 중복 재생 방지
+- ~~**TTS 서비스 오연결**~~: VN 대화에서 legacy ttsService → hybridTTS(Gemini 폴백 체인) 교체
+- ~~**운동 인식 카운트 누락**~~: visibility 임계값 완화, 상태 머신 안정화, accuracy 공식 개선
+- ~~**Google Cloud TTS 미통합**~~: hybridTTS 폴백 체인에 통합 완료
 - ~~**Animation Race Condition**~~: Fixed useEffect triggering premature state reset during animation loading
 - ~~**ESLint Warnings (77개)**~~: 모든 경고 해결
   - ESLint 설정 개선 (언더스코어 변수 무시 패턴 추가)
@@ -280,4 +287,4 @@ See [TASK_LIST.md](./TASK_LIST.md) for detailed task breakdown and contribution 
 
 ---
 
-*Last updated: 2026-01-24*
+*Last updated: 2026-01-26*
