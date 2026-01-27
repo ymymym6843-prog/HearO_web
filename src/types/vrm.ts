@@ -93,43 +93,42 @@ export const WORLDVIEW_MODELS: Record<WorldviewType, VRMModelInfo> = {
     id: 'fantasy_female',
     name: '힐러 요정',
     worldview: 'fantasy',
-    // T-pose 수정 버전으로 테스트
-    modelUrl: '/models/fantasy_female(fix).vrm',
+    modelUrl: '/models/fantasy_female.vrm',
     description: '판타지 세계의 치유사'
   },
   sports: {
     id: 'sports_female',
     name: '피트니스 코치',
     worldview: 'sports',
-    modelUrl: '/models/sports_female(fix).vrm',
+    modelUrl: '/models/sports_female.vrm',
     description: '스포츠 트레이너'
   },
   idol: {
     id: 'idol_female',
     name: '응원 아이돌',
     worldview: 'idol',
-    modelUrl: '/models/idol_female(fix).vrm',
+    modelUrl: '/models/idol_female.vrm',
     description: '에너지 넘치는 아이돌'
   },
   sf: {
     id: 'sf_female',
     name: '의료 AI',
     worldview: 'sf',
-    modelUrl: '/models/sf_female(fix).vrm',
+    modelUrl: '/models/sf_female.vrm',
     description: '미래의 의료 AI'
   },
   zombie: {
     id: 'zombie_female',
     name: '생존 의료관',
     worldview: 'zombie',
-    modelUrl: '/models/zombie_female(fix).vrm',
+    modelUrl: '/models/zombie_female.vrm',
     description: '좀비 세계의 생존 전문가'
   },
   spy: {
     id: 'spy_female',
     name: '비밀 요원',
     worldview: 'spy',
-    modelUrl: '/models/spy_female(fix).vrm',
+    modelUrl: '/models/spy_female.vrm',
     description: '비밀 스파이 요원'
   }
 };
