@@ -72,17 +72,7 @@ CREATE POLICY "patients_own_data" ON patients
   FOR ALL
   USING (auth.uid() = user_id);
 
--- RLS 정책: 의료진은 담당 환자 정보 조회만 가능
-CREATE POLICY "patients_clinician_view" ON patients
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM clinician_patient_relationships
-      WHERE clinician_id = auth.uid()
-      AND patient_id = patients.id
-      AND status = 'active'
-    )
-  );
+-- NOTE: patients_clinician_view 정책은 clinician_patient_relationships 테이블 생성 후 추가
 
 COMMENT ON TABLE patients IS '환자 의료 정보 및 재활 모드';
 COMMENT ON COLUMN patients.rehabilitation_mode IS '재활 모드: knee(무릎), shoulder(어깨), back(허리), hip(고관절)';
@@ -129,6 +119,18 @@ CREATE POLICY "relationships_patient_view" ON clinician_patient_relationships
 
 COMMENT ON TABLE clinician_patient_relationships IS '의료진과 환자 간의 관계 테이블';
 COMMENT ON COLUMN clinician_patient_relationships.status IS '관계 상태: active(활성), inactive(비활성)';
+
+-- RLS 정책: 의료진은 담당 환자 정보 조회만 가능 (clinician_patient_relationships 생성 후)
+CREATE POLICY "patients_clinician_view" ON patients
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM clinician_patient_relationships
+      WHERE clinician_id = auth.uid()
+      AND patient_id = patients.id
+      AND status = 'active'
+    )
+  );
 
 -- ============================================================
 -- 4. ROM_MEASUREMENTS 테이블 (ROM 측정 데이터)
