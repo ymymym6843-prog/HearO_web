@@ -14,15 +14,20 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Current Status: 92% Complete
+## Current Status: 95% Complete
 
 ### Build Status
 - **TypeScript Errors**: 0
 - **ESLint Warnings**: 0 ✨
 - **Build**: Successful (20 static pages)
-- **Last Updated**: 2026-01-26
+- **Last Updated**: 2026-01-27
 
 ### Recent Major Updates
+- **스토리 시스템 대폭 개선**: 세계관 온보딩, 챕터/에피소드 진행, 반복 플레이 차별화, 엔딩 분기 확장
+- **Gemini TTS 코덱 에러 수정**: MP3 시그니처 검증, Base64 디코딩 방어, Edge Function 오디오 크기 검증
+- **Supabase 프로젝트 분리**: HearO_web 전용 프로젝트(ybjzuaglgxtsamfqmjrt) 분리, Vercel 환경변수 업데이트
+- **ESLint 에러 완전 해결**: React Compiler 호환성 수정 (6개 이슈 → 0개)
+- **코드 품질 개선**: 중복 호출 방지(completionGuard + cooldown), Zustand 마이그레이션, DB 전략 문서화
 - **BGM 시스템 수정**: 파일명 불일치(`story_bgm` → `prologue_bgm`) 해결, 중복 재생 방지, worldview 가드 추가
 - **TTS 폴백 체인 연결**: VN 대화에서 legacy Web Speech API → hybridTTS(Gemini → Google Cloud → Web Speech) 교체
 - **운동 인식/카운트 개선**: visibility 임계값 완화(0.6→0.4), 상태 머신 안정화, accuracy 공식 개선
@@ -125,7 +130,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Phase 5: TTS System (95% Complete)
+## Phase 5: TTS System (98% Complete)
 
 ### Completed Tasks
 - [x] TTS Router with context-based provider selection
@@ -136,14 +141,14 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - [x] Daily usage limits and quota tracking
 - [x] TTS audio player with volume control
 - [x] VN 대화에서 hybridTTS 연결 (Gemini → Google Cloud → Web Speech)
+- [x] Gemini TTS 코덱 에러 수정 (MP3 시그니처 검증, Base64 방어)
 
 ### Remaining Tasks
 - [ ] TTS caching for offline mode
-- [ ] Voice selection per worldview
 
 ---
 
-## Phase 6: Story & NPC System (90% Complete)
+## Phase 6: Story & NPC System (100% Complete)
 
 ### Completed Tasks
 - [x] NPC character definitions (6 mentors)
@@ -153,10 +158,11 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - [x] Epilogue content service
 - [x] NPC entrance animations
 - [x] NPC image assets (90 images: 6 worldviews × 5 NPCs × 3 emotions)
-
-### Remaining Tasks
-- [ ] Complete story content for all worldviews
-- [ ] Dynamic story branching based on performance
+- [x] 세계관 온보딩 다이얼로그 (첫 방문 풀 소개, 재방문 컨텍스트 인사)
+- [x] 스토리 연속성 시스템 (챕터/에피소드 자동 진행)
+- [x] 반복 플레이 차별화 (대사 변형, 스트릭 이벤트)
+- [x] 엔딩 분기 확장 (chapter_clear, milestone, first_visit, normal)
+- [x] Dynamic story branching based on performance
 
 ---
 
@@ -180,7 +186,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
-## Phase 8: Performance & Optimization (85% Complete)
+## Phase 8: Performance & Optimization (90% Complete)
 
 ### Completed Tasks
 - [x] Web Worker for MediaPipe processing
@@ -190,6 +196,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - [x] TypeScript strict mode compliance
 - [x] **ESLint 경고 완전 제거 (0 warnings)**
 - [x] **코드 품질 최적화** (unused variables, dependencies)
+- [x] ESLint 에러 완전 해결 (React Compiler 호환)
 
 ### Remaining Tasks
 - [ ] Mobile performance optimization (target: 30fps)
@@ -242,6 +249,19 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 
 ---
 
+## Phase 11: Story Progression System (100% Complete)
+
+### Completed Tasks
+- [x] 세계관 온보딩 화면 (worldviewIntros.ts, useWorldStore 첫 방문 추적)
+- [x] 스토리 연속성 시스템 (useStoryProgressStore, 5에피소드=1챕터)
+- [x] 반복 플레이 차별화 (dialogueVariants.ts, 세션/챕터/스트릭 컨텍스트)
+- [x] 엔딩 분기 확장 (epilogueTemplates.ts, 4가지 EpilogueType)
+- [x] 중복 호출 방지 (completionGuardRef + store cooldown, defense-in-depth)
+- [x] Zustand 상태 마이그레이션 (Array→Record, 에러 복원력)
+- [x] DB 연동 전략 문서화 (server-wins 전환 체크리스트)
+
+---
+
 ## Future Roadmap
 
 ### Q1 2026
@@ -268,6 +288,10 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 3. **Test Coverage**: Unit tests needed for core services
 
 ### Recently Resolved
+- ~~**Gemini TTS 코덱 에러**~~: MP3 시그니처 검증 + Base64 atob 방어 + Edge Function 크기 검증 일관화
+- ~~**스토리 시스템 미완성**~~: 온보딩/챕터/반복차별화/엔딩분기 전부 구현
+- ~~**Supabase 프로젝트 공유 문제**~~: HearO_web 전용 프로젝트 분리, Vercel 환경변수 동기화
+- ~~**ESLint 에러 6개**~~: React Compiler 호환성 수정 (ref render access, setState in effect, exhaustive-deps)
 - ~~**BGM 파일명 불일치**~~: `story_bgm` → `prologue_bgm` 수정, worldview 가드 및 중복 재생 방지
 - ~~**TTS 서비스 오연결**~~: VN 대화에서 legacy ttsService → hybridTTS(Gemini 폴백 체인) 교체
 - ~~**운동 인식 카운트 누락**~~: visibility 임계값 완화, 상태 머신 안정화, accuracy 공식 개선
@@ -287,4 +311,4 @@ See [TASK_LIST.md](./TASK_LIST.md) for detailed task breakdown and contribution 
 
 ---
 
-*Last updated: 2026-01-26*
+*Last updated: 2026-01-27*

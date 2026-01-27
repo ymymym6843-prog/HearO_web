@@ -18,9 +18,12 @@ import { useExerciseStore } from '@/stores/useExerciseStore';
 import { useCharacterStore } from '@/stores/useCharacterStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { usePhaseStore, useCurrentPhase, useLayerVisibility } from '@/stores/usePhaseStore';
+import { useStoryProgressStore } from '@/stores/useStoryProgressStore';
 import { WORLDVIEW_COLORS } from '@/constants/themes';
 import { WORLDVIEW_MODELS } from '@/types/vrm';
 import { createExerciseIntroDialogue } from '@/constants/exerciseDialogues';
+import { getWorldviewOnboardingDialogue } from '@/constants/worldviewIntros';
+import { getContextualGreeting, type StoryContext } from '@/constants/dialogueVariants';
 import { NPCDialogue } from '@/components/story/NPCDialogue';
 import {
   ExerciseCompleteScreen,
@@ -185,7 +188,8 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const resolvedParams = use(params);
   const exerciseId = resolvedParams.id as ExerciseType;
 
-  const { currentWorldview } = useWorldStore();
+  const { currentWorldview, isFirstVisit, markVisited } = useWorldStore();
+  const { getProgress, advanceEpisode } = useStoryProgressStore();
   const {
     currentRep,
     targetReps,
@@ -260,6 +264,9 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   const elapsedSecondsRef = useRef(0);
   const sessionStartTimeRef = useRef<number | null>(null);
 
+  // 운동 완료 중복 호출 방지
+  const completionGuardRef = useRef(false);
+
   // 홀드 타이머 상태
   const [holdTime, setHoldTime] = useState(0);
   const holdExercises: ExerciseType[] = ['wall_squat', 'seated_core_hold', 'standing_anti_extension_hold'];
@@ -321,9 +328,34 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     // Phase를 intro로 설정
     setWorkflowPhase('intro');
 
-    // 인트로 대화 시퀀스 시작
-    const dialogueSequence = createExerciseIntroDialogue(currentWorldview, exerciseId);
-    startDialogue(dialogueSequence);
+    // 온보딩 + 인트로 대화 시퀀스 결합
+    const firstVisit = isFirstVisit(currentWorldview);
+    const exerciseDialogue = createExerciseIntroDialogue(currentWorldview, exerciseId);
+
+    let prefixEntries;
+    if (firstVisit) {
+      // 첫 방문: 풀 온보딩 다이얼로그
+      prefixEntries = getWorldviewOnboardingDialogue(currentWorldview, true);
+      markVisited(currentWorldview);
+    } else {
+      // 재방문: 스토리 진행 기반 컨텍스트 인사
+      const progress = getProgress(currentWorldview);
+      const storyCtx: StoryContext = {
+        chapter: progress.chapter,
+        episode: progress.episode,
+        totalSessions: progress.totalSessions,
+        streakDays: 0, // TODO: 실제 스트릭 데이터 연동
+        isFirstVisit: false,
+      };
+      prefixEntries = getContextualGreeting(currentWorldview, storyCtx);
+    }
+
+    const combinedSequence = {
+      ...exerciseDialogue,
+      id: `onboard-intro-${currentWorldview}-${exerciseId}`,
+      entries: [...prefixEntries, ...exerciseDialogue.entries],
+    };
+    startDialogue(combinedSequence);
 
     // BGM 초기화 및 프롤로그 BGM 시작
     if (currentWorldview) {
@@ -341,6 +373,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
       stopHybridTTS().catch(() => {/* ignore cleanup errors */});
       sessionRecoveryService.stopAutoSave();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorldview, exerciseId, setWorkflowPhase, startDialogue, initBGM, playBGM, stopBGM]);
 
   // 카운트다운 시작 (대화 완료 또는 스킵 버튼 클릭 시)
@@ -463,8 +496,15 @@ export default function ExercisePage({ params }: ExercisePageProps) {
 
   // 운동 완료 처리
   const handleExerciseComplete = useCallback(async (rating: PerformanceRating) => {
+    // 중복 호출 방지 (리렌더/재시도/중복 트리거 대응)
+    if (completionGuardRef.current) return;
+    completionGuardRef.current = true;
+
     setPerformanceRating(rating);
     setIsComplete(true);
+
+    // 스토리 진행 (에피소드 + 챕터 자동 관리)
+    advanceEpisode(currentWorldview);
 
     // 완료 애니메이션 재생을 위해 추적 모드를 animation으로 전환
     setTrackingMode('animation');
@@ -490,7 +530,20 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     ttsService.playPrerenderedTTS(currentWorldview, exerciseId, rating);
 
     try {
-      const story = await storyService.getStory(currentWorldview, exerciseId, rating);
+      // 스토리 진행 컨텍스트 구성
+      const progress = getProgress(currentWorldview);
+      const epilogueContext = {
+        chapter: progress.chapter,
+        episode: progress.episode,
+        totalSessions: progress.totalSessions,
+        streakDays: 0, // TODO: 실제 스트릭 데이터 연동
+        isFirstVisit: progress.totalSessions <= 1,
+        grade: rating,
+      };
+
+      const story = await storyService.getStoryWithContext(
+        currentWorldview, exerciseId, rating, epilogueContext
+      );
       if (story) {
         setCompletionStory(story);
       } else {
@@ -500,7 +553,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
       console.error('Failed to load story:', error);
       setCompletionStory(storyService.getDefaultStory(rating));
     }
-  }, [currentWorldview, exerciseId, fadeOutBGM]);
+  }, [currentWorldview, exerciseId, fadeOutBGM, advanceEpisode, getProgress]);
 
   // 운동 성공 시 효과음
   const playSuccessSFX = useCallback(() => {
@@ -510,7 +563,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
   // 감지기 상태를 스토어 상태로 변환 (운동 방향 반영)
   const isUpwardFirst = UPWARD_FIRST_EXERCISES.has(exerciseId);
 
-  const mapDetectorPhaseToStore = (detectorPhase: DetectorPhase): ExercisePhase => {
+  const mapDetectorPhaseToStore = useCallback((detectorPhase: DetectorPhase): ExercisePhase => {
     const phaseMap: Record<DetectorPhase, ExercisePhase> = {
       'IDLE': 'ready',
       'READY': 'ready',
@@ -520,7 +573,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
       'COOLDOWN': 'rest',
     };
     return phaseMap[detectorPhase] || 'ready';
-  };
+  }, [isUpwardFirst]);
 
   // 포즈 감지 콜백
   const handlePoseDetected = useCallback((landmarks: Landmark[] | null) => {
@@ -578,7 +631,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     if (isHoldExercise && result.holdProgress !== undefined) {
       setHoldTime(result.holdProgress * targetHoldTime);
     }
-  }, [isActive, setPhase, updateAccuracy, updateProgress, updateAngle, setFeedback, incrementReps, playSuccessSFX, targetReps, handleExerciseComplete, isHoldExercise, targetHoldTime, mediaPipeReady]);
+  }, [isActive, setPhase, updateAccuracy, updateProgress, updateAngle, setFeedback, incrementReps, playSuccessSFX, targetReps, handleExerciseComplete, isHoldExercise, targetHoldTime, mediaPipeReady, mapDetectorPhaseToStore]);
 
   // 종료
   const handleEnd = () => {
@@ -998,16 +1051,31 @@ export default function ExercisePage({ params }: ExercisePageProps) {
               lastRepCountRef.current = 0;
               accumulatedAccuracyRef.current = [];
             }
+            completionGuardRef.current = false;
             setIsComplete(false);
             setShowNPCDialogue(false);
             setCompletionStory('');
             // 추적 모드와 애니메이션 프리셋 리셋
             setTrackingMode('animation');
             setAnimationPreset('A');
-            // intro로 다시 시작
+            // intro로 다시 시작 (재시도이므로 재방문 컨텍스트 인사)
             setWorkflowPhase('intro');
-            const dialogueSequence = createExerciseIntroDialogue(currentWorldview, exerciseId);
-            startDialogue(dialogueSequence);
+            const retryProgress = getProgress(currentWorldview);
+            const retryCtx: StoryContext = {
+              chapter: retryProgress.chapter,
+              episode: retryProgress.episode,
+              totalSessions: retryProgress.totalSessions,
+              streakDays: 0,
+              isFirstVisit: false,
+            };
+            const retryGreeting = getContextualGreeting(currentWorldview, retryCtx);
+            const exerciseDialogue = createExerciseIntroDialogue(currentWorldview, exerciseId);
+            const retrySequence = {
+              ...exerciseDialogue,
+              id: `retry-intro-${currentWorldview}-${exerciseId}`,
+              entries: [...retryGreeting, ...exerciseDialogue.entries],
+            };
+            startDialogue(retrySequence);
           }}
         />
       )}

@@ -152,6 +152,7 @@ export function useTypingAnimation({
   // 텍스트 변경 시 시작
   useEffect(() => {
     if (!enabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- animation reset on disable
       setDisplayedText('');
       setIsTyping(false);
       return;
@@ -172,7 +173,7 @@ export function useTypingAnimation({
     isTyping,
     skip,
     restart,
-    progress: text.length > 0 ? charIndexRef.current / text.length : 0,
+    progress: text.length > 0 ? displayedText.length / text.length : 0,
   };
 }
 

@@ -51,7 +51,7 @@ export function VoiceCommandButton({
   const [feedbackText, setFeedbackText] = useState<string | null>(null);
 
   // 명령 인식 피드백
-  const handleCommand = useCallback((command: VoiceCommandType, transcript: string) => {
+  const handleCommand = useCallback((command: VoiceCommandType, _transcript: string) => {
     const commandLabels: Record<VoiceCommandType, string> = {
       start: '시작',
       next: '다음',

@@ -5,9 +5,15 @@
 
 import { createLogger } from '@/lib/logger';
 import type { WorldviewType } from '@/types/vrm';
+import type { ExerciseType, PerformanceRating } from '@/types/exercise';
+import {
+  determineEpilogueType,
+  getEpilogueByType,
+  isSpecialEpilogue,
+  type EpilogueStoryContext,
+} from '@/constants/epilogueTemplates';
 
 const _logger = createLogger('StoryService');
-import type { ExerciseType, PerformanceRating } from '@/types/exercise';
 
 // 스토리 데이터 구조
 type StoryData = Record<WorldviewType, Record<ExerciseType, Record<PerformanceRating, string>>>;
@@ -156,6 +162,34 @@ class StoryService {
    */
   clearCache(): void {
     this.stories = null;
+  }
+
+  /**
+   * 컨텍스트 기반 스토리 가져오기
+   * 에필로그 타입에 따라 특별 스토리 또는 기존 프리렌더드 스토리 반환
+   */
+  async getStoryWithContext(
+    worldview: WorldviewType,
+    exercise: ExerciseType,
+    rating: PerformanceRating,
+    context?: EpilogueStoryContext
+  ): Promise<string | null> {
+    // 컨텍스트가 있으면 에필로그 타입 결정
+    if (context) {
+      const epilogueType = determineEpilogueType(context);
+
+      // 특별 에필로그인 경우 해당 템플릿 사용
+      if (isSpecialEpilogue(epilogueType)) {
+        const specialStory = getEpilogueByType(worldview, epilogueType, context);
+        if (specialStory) {
+          console.log('[StoryService] Using special epilogue', { epilogueType, worldview });
+          return specialStory;
+        }
+      }
+    }
+
+    // 기본: 프리렌더드 스토리
+    return this.getStory(worldview, exercise, rating);
   }
 
   /**

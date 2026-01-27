@@ -217,6 +217,12 @@ export interface EpilogueContext {
   isSpecialEvent?: boolean;
   forceAI?: boolean;
   streakDays?: number;
+  /** 현재 챕터 번호 */
+  chapter?: number;
+  /** 현재 에피소드 번호 */
+  episode?: number;
+  /** 해당 세계관 총 세션 수 */
+  totalSessions?: number;
 }
 
 export interface PrologueContext {

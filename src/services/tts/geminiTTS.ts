@@ -246,6 +246,7 @@ export async function generateGeminiTTS(
           voiceStyle,
           speakingRate,
           voiceName: voiceName || 'Kore',
+          audioEncoding: 'MP3',
         },
       }
     );
@@ -260,14 +261,39 @@ export async function generateGeminiTTS(
       throw new Error(data?.error || 'No audio content returned');
     }
 
-    // Base64 → Blob 변환
-    const binaryString = atob(data.audioContent);
+    // 오디오 데이터 검증 + Base64 → Blob 변환
+    const audioContent = data.audioContent;
+    let binaryString: string;
+    try {
+      binaryString = atob(audioContent);
+    } catch (e) {
+      log.error('Failed to decode Base64 audio content', { error: e, preview: audioContent.slice(0, 32) });
+      throw new Error('Invalid audio response from TTS service: malformed Base64');
+    }
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
+    // 최소 크기 + 형식 검증
     const mimeType = data.mimeType || 'audio/mp3';
+    const headerHex = Array.from(bytes.slice(0, 16), b => b.toString(16).padStart(2, '0')).join(' ');
+
+    if (bytes.length < 1024) {
+      log.error('Audio content too small', { byteLength: bytes.length, mimeType, headerHex });
+      throw new Error('Audio content too small, likely error response');
+    }
+
+    // MP3 시그니처 검증: ID3 태그(49 44 33) 또는 MPEG 프레임 동기(FF FB/FA/F3/F2)
+    if (mimeType.includes('mp3') || mimeType.includes('mpeg')) {
+      const isID3 = bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33;
+      const isMPEGSync = bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0;
+      if (!isID3 && !isMPEGSync) {
+        log.error('Invalid MP3 header signature', { byteLength: bytes.length, mimeType, headerHex });
+        throw new Error('Audio data does not have valid MP3 header');
+      }
+    }
+
     const audioBlob = new Blob([bytes], { type: mimeType });
 
     // 캐시 저장

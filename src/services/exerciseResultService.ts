@@ -22,6 +22,8 @@ interface CreateSessionOptions {
   exerciseType: ExerciseType;
   worldview?: WorldviewType;
   targetReps: number;
+  chapterNumber?: number;
+  episodeNumber?: number;
 }
 
 // 세션 완료 옵션
@@ -70,6 +72,8 @@ class ExerciseResultService {
       total_reps: 0,
       average_accuracy: 0,
       duration_seconds: 0,
+      ...(options.chapterNumber != null && { chapter_number: options.chapterNumber }),
+      ...(options.episodeNumber != null && { episode_number: options.episodeNumber }),
     };
 
     const { data, error } = await supabase

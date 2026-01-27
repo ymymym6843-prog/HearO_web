@@ -30,12 +30,23 @@ const corsHeaders = {
 /** 음성 스타일 */
 type VoiceStyle = 'neutral' | 'expressive' | 'dramatic' | 'gentle' | 'energetic';
 
+/** 오디오 인코딩 */
+type AudioEncoding = 'MP3' | 'LINEAR16' | 'OGG_OPUS';
+
+/** 인코딩 → MIME 타입 매핑 */
+const ENCODING_MIME_MAP: Record<AudioEncoding, string> = {
+  MP3: 'audio/mp3',
+  LINEAR16: 'audio/wav',
+  OGG_OPUS: 'audio/ogg',
+};
+
 /** 요청 타입 */
 interface GeminiTTSRequest {
   text: string;
   voiceStyle?: VoiceStyle;
   speakingRate?: number; // 0.5 - 2.0
   voiceName?: string; // Kore (한국어), Zubenelgenubi, Algieba, etc.
+  audioEncoding?: AudioEncoding; // 클라이언트가 원하는 오디오 포맷
 }
 
 /** 응답 타입 */
@@ -167,11 +178,15 @@ async function synthesizeSpeechWithModel(
     return { success: false, error: 'No audio content returned', modelUsed: model };
   }
 
-  console.log(`[gemini-tts] Success with model: ${model}`);
+  // mimeType 결정: 클라이언트 요청 인코딩 > API 반환값 > 기본값
+  const requestedEncoding = request.audioEncoding || 'MP3';
+  const resolvedMimeType = audioData.mimeType || ENCODING_MIME_MAP[requestedEncoding] || 'audio/mp3';
+
+  console.log(`[gemini-tts] Success with model: ${model}, mimeType: ${resolvedMimeType}`);
   return {
     success: true,
     audioContent: audioData.data,
-    mimeType: audioData.mimeType || 'audio/mp3',
+    mimeType: resolvedMimeType,
     modelUsed: model,
   };
 }
@@ -303,6 +318,24 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status }
+      );
+    }
+
+    // 오디오 데이터 유효성 검증
+    if (!result.audioContent) {
+      console.error('[gemini-tts] Audio content is empty');
+      return new Response(
+        JSON.stringify({ success: false, error: 'empty_audio', detail: 'No audio content in successful response' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 }
+      );
+    }
+    // Base64 → 바이트 환산 (3/4 비율), 클라이언트 기준(1KB)과 동일하게 맞춤
+    const estimatedBytes = Math.floor(result.audioContent.length * 3 / 4);
+    if (estimatedBytes < 1024) {
+      console.error('[gemini-tts] Audio content too small:', estimatedBytes, 'bytes (base64:', result.audioContent.length, 'chars)');
+      return new Response(
+        JSON.stringify({ success: false, error: 'too_small_audio', detail: `Estimated ${estimatedBytes} bytes` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 }
       );
     }
 

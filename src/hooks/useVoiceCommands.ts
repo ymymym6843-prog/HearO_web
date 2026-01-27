@@ -100,8 +100,12 @@ export function useVoiceCommands({
     if (typeof window !== 'undefined') {
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition;
-      setIsSupported(!!SpeechRecognition);
+      const supported = !!SpeechRecognition;
+      if (supported !== isSupported) {
+        setIsSupported(supported);
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time browser capability check
   }, []);
 
   // 명령어 매칭

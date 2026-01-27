@@ -83,6 +83,8 @@ export interface Database {
           average_accuracy: number;
           duration_seconds: number;
           status: 'in_progress' | 'completed' | 'cancelled';
+          chapter_number: number | null;
+          episode_number: number | null;
           created_at: string;
         };
         Insert: {
@@ -97,6 +99,8 @@ export interface Database {
           average_accuracy?: number;
           duration_seconds?: number;
           status?: 'in_progress' | 'completed' | 'cancelled';
+          chapter_number?: number | null;
+          episode_number?: number | null;
           created_at?: string;
         };
         Update: {
@@ -111,6 +115,8 @@ export interface Database {
           average_accuracy?: number;
           duration_seconds?: number;
           status?: 'in_progress' | 'completed' | 'cancelled';
+          chapter_number?: number | null;
+          episode_number?: number | null;
           created_at?: string;
         };
         Relationships: [

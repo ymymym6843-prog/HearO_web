@@ -509,6 +509,8 @@ function generateDemoData(): ExerciseSession[] {
       average_accuracy: 70 + Math.floor(Math.random() * 25),
       duration_seconds: 180 + Math.floor(Math.random() * 120),
       status: 'completed',
+      chapter_number: null,
+      episode_number: null,
       created_at: date.toISOString(),
     });
   }

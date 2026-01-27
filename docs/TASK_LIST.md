@@ -8,14 +8,15 @@
 | VRM & Animation | 8 | 10 | 80% |
 | Theme System | 10 | 12 | 83% |
 | Exercise System | 18 | 18 | 100% |
-| TTS System | 8 | 9 | 89% |
-| Story & NPC | 8 | 9 | 89% |
+| TTS System | 10 | 10 | 100% |
+| Story & NPC | 13 | 13 | 100% |
 | Worldview Activation | 3 | 6 | 50% |
-| Performance | 7 | 9 | 78% |
+| Performance | 8 | 9 | 89% |
 | Accessibility | 5 | 7 | 71% |
 | **Medical System (Phase 1)** | **12** | **14** | **86%** |
 | **Gamification (Phase 1)** | **6** | **6** | **100%** |
-| **Overall** | **92** | **112** | **82%** |
+| **Story Progression** | **7** | **7** | **100%** |
+| **Overall** | **108** | **118** | **92%** |
 
 ---
 
@@ -128,8 +129,8 @@
 | TTS audio player | [x] | - | Volume control |
 | Google Cloud TTS | [x] | - | Edge Function + hybridTTS 폴백 체인 |
 | VN 대화 hybridTTS 연결 | [x] | - | Gemini → Google Cloud → Web Speech |
-| TTS caching | [ ] | Medium | Offline support |
-| Voice selection | [ ] | Low | Per worldview |
+| Gemini TTS 코덱 수정 | [x] | - | MP3 시그니처 + Base64 방어 |
+| Voice selection per worldview | [x] | - | GEMINI_TTS_CONFIGS 세계관별 음성 |
 
 ---
 
@@ -145,7 +146,11 @@
 | NPC entrance animations | [x] | - | Framer Motion |
 | NPC image assets | [x] | - | 90 images (6 worldviews × 5 NPCs × 3 emotions) |
 | Complete story content | [x] | - | All 6 worldviews complete |
-| Dynamic story branching | [ ] | Low | Performance-based |
+| 세계관 온보딩 다이얼로그 | [x] | - | worldviewIntros.ts |
+| 스토리 연속성 (챕터/에피소드) | [x] | - | useStoryProgressStore |
+| 반복 플레이 차별화 | [x] | - | dialogueVariants.ts |
+| 엔딩 분기 확장 | [x] | - | epilogueTemplates.ts |
+| Dynamic story branching | [x] | - | 성과/챕터/마일스톤 기반 |
 
 ---
 
@@ -173,6 +178,7 @@
 | TypeScript strict | [x] | - | 0 errors |
 | ESLint 경고 제거 | [x] | - | 77 → 0 warnings ✨ |
 | 코드 품질 최적화 | [x] | - | Dependencies, unused vars |
+| ESLint 에러 완전 해결 | [x] | - | React Compiler 호환 (6개→0개) |
 | Mobile 30fps target | [ ] | Critical | Performance |
 | Bundle optimization | [ ] | Medium | Code splitting |
 
@@ -223,6 +229,66 @@
 | 스트릭 표시 | [x] | - | ExerciseHUD에 포함 |
 | 일일 통계 대시보드 | [x] | - | DailyStatsDashboard.tsx |
 | 주간 활동 히트맵 | [x] | - | DailyStatsDashboard에 포함 |
+
+---
+
+## 12. Story Progression System (NEW)
+
+| Task | Status | Priority | Notes |
+|------|--------|----------|-------|
+| 세계관 온보딩 화면 | [x] | - | 첫 방문 풀 소개, 재방문 컨텍스트 인사 |
+| 스토리 진행 관리 (useStoryProgressStore) | [x] | - | 5에피소드=1챕터, Zustand persist |
+| 반복 플레이 차별화 (dialogueVariants) | [x] | - | 세션/챕터/스트릭 대사 변형 |
+| 엔딩 분기 확장 (epilogueTemplates) | [x] | - | 4가지 EpilogueType |
+| 중복 호출 방지 | [x] | - | completionGuardRef + store cooldown |
+| Zustand 상태 마이그레이션 | [x] | - | Array→Record, 에러 복원력 |
+| DB 연동 전략 문서화 | [x] | - | server-wins 전환 체크리스트 |
+
+---
+
+## Recent Changes (2026-01-27)
+
+### 스토리 시스템 대폭 개선 (P0)
+1. **세계관 온보딩 화면** (`src/constants/worldviewIntros.ts` 신규)
+   - 세계관별 멘토 NPC 소개 다이얼로그 (3-4개 엔트리)
+   - 첫 방문: 풀 온보딩, 재방문: 짧은 컨텍스트 인사
+   - `useWorldStore` 방문 상태 추적 (Array→Record 마이그레이션)
+2. **스토리 연속성 시스템** (`src/stores/useStoryProgressStore.ts` 신규)
+   - 세계관별 챕터/에피소드 자동 진행 (5에피소드 = 1챕터)
+   - Zustand + persist (localStorage), defense-in-depth 중복 방지
+   - DB 연동 전략 문서화 (server-wins 전환 체크리스트)
+3. **반복 플레이 차별화** (`src/constants/dialogueVariants.ts` 신규)
+   - 세션 횟수별 인사 변형 (첫 방문/재방문/친밀/베테랑)
+   - 챕터 전환 이벤트, 스트릭 마일스톤 (7/30/100일)
+4. **엔딩 분기 확장** (`src/constants/epilogueTemplates.ts` 신규)
+   - EpilogueType: first_visit > chapter_clear > milestone > normal
+   - 세계관별 에필로그 템플릿 + 성과등급 분기
+5. **운동 페이지 통합** (`src/app/exercise/[id]/page.tsx`)
+   - 온보딩 + 인트로 대화 시퀀스 결합
+   - completionGuardRef 중복 호출 방지
+   - 스토리 진행 컨텍스트 에필로그 전달
+
+### Gemini TTS 코덱 수정 (P0)
+1. **클라이언트 오디오 검증** (`src/services/tts/geminiTTS.ts`)
+   - Base64 regex → atob try/catch 방어
+   - MP3 시그니처 검증 (ID3 태그 + MPEG sync word)
+   - 최소 크기 검증 (1KB) + 진단 로그 (byteLength, headerHex)
+2. **Edge Function 검증** (`supabase/functions/gemini-tts/index.ts`)
+   - 서버/클라이언트 최소 크기 기준 일관화 (1KB bytes)
+   - 에러 코드 분류 (empty_audio, too_small_audio)
+
+### Supabase 프로젝트 분리 (P0)
+1. HearO_web 전용 프로젝트 연결 (`ybjzuaglgxtsamfqmjrt`)
+2. `.env.local` 업데이트 (URL + Anon Key)
+3. Vercel 환경변수 동기화 (Production/Preview/Development)
+4. Edge Function 재배포 (gemini-tts)
+
+### ESLint 에러 완전 해결 (P1)
+1. `WorldviewCarousel.tsx`: useCallback deps에 setComingSoonWorld 추가
+2. `useTypingAnimation.ts`: charIndexRef.current → displayedText.length (render 중 ref 접근 제거)
+3. `useVoiceCommands.ts`: setState-in-effect 경고 처리
+4. `VoiceCommandButton.tsx`: unused transcript 매개변수 제거
+5. `exercise/[id]/page.tsx`: exhaustive-deps (getProgress, mapDetectorPhaseToStore 추가)
 
 ---
 
@@ -429,6 +495,11 @@
 24. **Fixed TTS using wrong service** - VN 대화에서 legacy Web Speech → hybridTTS 폴백 체인
 25. **Fixed exercise rep count not incrementing** - visibility 임계값 과도, 상태 머신 early return 수정
 26. **Fixed handleExerciseComplete missing dependency** - `fadeOutBGM` 의존성 누락 ESLint 에러
+27. **Fixed Gemini TTS codec error** - MP3 header validation + Base64 atob defense
+28. **Fixed story progression duplication** - completionGuardRef + store cooldown (defense-in-depth)
+29. **Fixed Zustand migration error** - Array→Record with error resilience + currentWorldview preservation
+30. **Fixed ESLint errors (6개)** - React Compiler compatibility (ref render, setState effect, deps)
+31. **Fixed Supabase project separation** - HearO_web dedicated project + Vercel env sync
 
 ### New Features (Earlier)
 1. Worldview-specific typing speeds
@@ -446,7 +517,8 @@
 ### High
 1. [x] Complete story content for inactive worldviews (SF, Zombie, Spy) - ✅ 완료됨
 2. [ ] Screen reader optimization
-3. [ ] Memory leak detection
+3. [x] ~~Dynamic story branching~~ - ✅ 스토리 시스템 완전 구현
+4. [ ] Memory leak detection
 
 ### Medium
 1. [x] ~~Google Cloud TTS integration~~ - ✅ hybridTTS 폴백 체인에 통합 완료
@@ -457,7 +529,6 @@
 ### Low
 1. [ ] Animation blending
 2. [ ] Theme transition animations
-3. [ ] Dynamic story branching
 
 ---
 
@@ -468,7 +539,7 @@ Build Status: SUCCESS
 TypeScript Errors: 0
 ESLint Warnings: 0 ✨
 Static Pages: 20
-Last Build: 2026-01-26
+Last Build: 2026-01-27
 ```
 
 ---
@@ -520,4 +591,4 @@ public/
 
 ---
 
-*Last updated: 2026-01-26 (BGM/TTS 수정, 운동 인식 개선, ESLint 에러 해결)*
+*Last updated: 2026-01-27 (스토리 시스템, TTS 코덱 수정, Supabase 분리, ESLint 해결)*

@@ -71,7 +71,7 @@ export function WorldviewCarousel({ onSelect, selectedWorldview }: WorldviewCaro
     } else {
       setComingSoonWorld(worldview);
     }
-  }, [onSelect]);
+  }, [onSelect, setComingSoonWorld]);
 
   return (
     <div className="w-full">

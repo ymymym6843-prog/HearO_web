@@ -25,6 +25,12 @@ import {
   getEpilogueStory,
   getTTSAudioUrl,
 } from '@/services/prerenderedContentService';
+import {
+  determineEpilogueType,
+  getEpilogueByType,
+  isSpecialEpilogue,
+  type EpilogueStoryContext,
+} from '@/constants/epilogueTemplates';
 
 // ============================================================
 // 타입 정의
@@ -80,7 +86,34 @@ export async function generateEpilogue(
     isSpecialEvent = false,
     forceAI = false,
     streakDays: _streakDays = 0,
+    chapter = 1,
+    episode = 1,
+    totalSessions: _totalSessions = 0,
   } = context;
+
+  // 0. 에필로그 타입 결정 (챕터 클리어, 마일스톤, 첫 방문 등)
+  const epilogueContext: EpilogueStoryContext = {
+    chapter,
+    episode,
+    totalSessions: _totalSessions,
+    streakDays: _streakDays,
+    isFirstVisit: isSpecialEvent && (_totalSessions <= 1),
+    grade,
+  };
+  const epilogueType = determineEpilogueType(epilogueContext);
+
+  // 특별 에필로그 타입인 경우 전용 템플릿 사용
+  if (isSpecialEpilogue(epilogueType)) {
+    const specialContent = getEpilogueByType(worldviewId, epilogueType, epilogueContext);
+    if (specialContent) {
+      console.log('[AIGateway] Using special epilogue', { epilogueType, worldviewId });
+      return {
+        success: true,
+        content: specialContent,
+        source: 'template',
+      };
+    }
+  }
 
   // 1. 특별 이벤트가 아니면 프리렌더링 콘텐츠 우선 사용
   if (!isSpecialEvent && !forceAI) {
@@ -117,6 +150,8 @@ export async function generateEpilogue(
     leveledUp,
     newLevel,
     earnedExp,
+    chapter,
+    episode,
   });
 
   console.log('[AIGateway] Using template epilogue', {
@@ -140,7 +175,7 @@ export async function generateEpilogue(
 /**
  * 프롤로그 생성 (템플릿 기반)
  */
-export function generatePrologue(context: PrologueContext): GenerationResult {
+export function generatePrologue(context: PrologueContext & { chapter?: number; episode?: number }): GenerationResult {
   const {
     worldviewId,
     heroName,
@@ -148,6 +183,8 @@ export function generatePrologue(context: PrologueContext): GenerationResult {
     exerciseId,
     targetReps,
     streakDays = 0,
+    chapter = 1,
+    episode = 1,
   } = context;
 
   const mentor = WORLDVIEW_MENTORS[worldviewId];
@@ -165,7 +202,12 @@ export function generatePrologue(context: PrologueContext): GenerationResult {
     spy: `${timeGreeting}, 요원 ${heroName}. 오늘 훈련 미션: "${exerciseName}". 목표: ${targetReps}회. 현장 복귀를 위해 힘을 길러야 합니다.`,
   };
 
-  const content = templates[worldviewId];
+  let content = templates[worldviewId];
+
+  // 챕터/에피소드 진행 정보
+  if (chapter > 1 || episode > 1) {
+    content += ` [챕터 ${chapter} - 에피소드 ${episode}]`;
+  }
 
   // 연속 운동 보너스 메시지
   let bonusMessage = '';
@@ -253,6 +295,8 @@ function generateTemplateEpilogue(params: {
   leveledUp: boolean;
   newLevel?: number;
   earnedExp: number;
+  chapter?: number;
+  episode?: number;
 }): string {
   const {
     worldviewId,
@@ -266,6 +310,8 @@ function generateTemplateEpilogue(params: {
     leveledUp,
     newLevel,
     earnedExp,
+    chapter = 1,
+    episode = 1,
   } = params;
 
   const _mentor = WORLDVIEW_MENTORS[worldviewId];
@@ -281,6 +327,11 @@ function generateTemplateEpilogue(params: {
   };
 
   let content = gradeMessages[grade];
+
+  // 챕터 진행 정보 추가
+  if (chapter > 0 && episode > 0) {
+    content += ` [챕터 ${chapter} - 에피소드 ${episode}]`;
+  }
 
   // 레벨업 메시지 추가
   if (leveledUp && newLevel) {
