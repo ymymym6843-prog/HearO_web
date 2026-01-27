@@ -287,8 +287,8 @@ export const SEATED_KNEE_LIFT_CONFIG: ExerciseDetectionConfig = {
 
 // --- 상체 운동 (4개) ---
 
-export const STANDING_ARM_RAISE_FRONT_CONFIG: ExerciseDetectionConfig = {
-  exerciseId: 'standing_arm_raise_front',
+export const ARM_RAISE_FRONT_CONFIG: ExerciseDetectionConfig = {
+  exerciseId: 'arm_raise_front',
   detectionMethod: 'angle',
   stateMachineMode: 'big_is_up',
   primaryJoint: 'shoulder',
@@ -637,7 +637,7 @@ export const POSE_EXERCISE_CONFIGS: Record<PoseExercise, ExerciseDetectionConfig
   standing_march_slow: STANDING_MARCH_SLOW_CONFIG,
   seated_knee_lift: SEATED_KNEE_LIFT_CONFIG,
   // 상체 운동
-  standing_arm_raise_front: STANDING_ARM_RAISE_FRONT_CONFIG,
+  arm_raise_front: ARM_RAISE_FRONT_CONFIG,
   shoulder_abduction: SHOULDER_ABDUCTION_CONFIG,
   elbow_flexion: ELBOW_FLEXION_CONFIG,
   wall_push: WALL_PUSH_CONFIG,

@@ -2,7 +2,7 @@
  * 신규 6개 운동 스토리 텍스트 생성 스크립트
  *
  * 누락된 운동:
- * - standing_arm_raise_front (팔 앞으로 들기)
+ * - arm_raise_front (팔 앞으로 들기)
  * - shoulder_abduction (어깨 벌리기)
  * - elbow_flexion (팔꿈치 굽히기)
  * - wall_push (벽 밀기)
@@ -19,7 +19,7 @@ type GradeType = 'perfect' | 'good' | 'normal';
 
 // 운동 ID
 const MISSING_EXERCISES = [
-  'standing_arm_raise_front',
+  'arm_raise_front',
   'shoulder_abduction',
   'elbow_flexion',
   'wall_push',
@@ -32,7 +32,7 @@ type MissingExercise = typeof MISSING_EXERCISES[number];
 // 세계관별 스토리 템플릿
 const STORIES: Record<MissingExercise, Record<WorldviewType, Record<GradeType, string>>> = {
   // 팔 앞으로 들기
-  standing_arm_raise_front: {
+  arm_raise_front: {
     fantasy: {
       perfect: '위대한 마법사여, 팔을 앞으로 드는 자세가 완벽하도다! 그대가 뻗은 손끝에서 강력한 마나의 빛줄기가 뿜어져 나오고 있으니, 이제 어떤 어둠의 마법도 그대를 막지 못할 것이오!',
       good: '훌륭하오, 젊은 마법사여! 팔을 앞으로 드는 자세가 많이 향상되었소. 마나가 팔을 따라 안정적으로 흐르고 있으니, 곧 마법 광선을 자유자재로 쏠 수 있을 것이오!',

@@ -349,7 +349,7 @@ export const EXERCISE_NAMES_KR: Record<string, string> = {
   standing_march_slow: '제자리 행진',
   seated_knee_lift: '무릎 들기',
   // 상체
-  standing_arm_raise_front: '팔 들기',
+  arm_raise_front: '팔 들기',
   shoulder_abduction: '어깨 벌리기',
   elbow_flexion: '팔꿈치 굽히기',
   wall_push: '벽 밀기',

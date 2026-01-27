@@ -20,6 +20,7 @@ import type { WorldviewType } from '@/types/vrm';
 import { usePhaseStore, useDialogue } from '@/stores/usePhaseStore';
 import { getMainNPC, getNPCImagePath, NPC_CHARACTERS, type NPCCharacter, type NPCEmotion } from '@/constants/npcCharacters';
 import { speakVNDialogue, stop as stopHybridTTS } from '@/services/tts/hybridTTS';
+import { WORLDVIEW_COLORS } from '@/constants/themes';
 
 // ============================================
 // Props & Types
@@ -165,6 +166,10 @@ export function VNDialogueBox({
   const fullTextRef = useRef('');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 라인 호버 상태
+  const [hoveredLineIndex, setHoveredLineIndex] = useState<number | null>(null);
+  const themeColor = WORLDVIEW_COLORS[worldview]?.primary || '#8B5CF6';
+
   // NPC 정보 - currentEntry 전체를 의존성으로 사용 (React Compiler 호환)
   const npc = useMemo(() => {
     if (!currentEntry) return getMainNPC(worldview);
@@ -287,6 +292,7 @@ export function VNDialogueBox({
     setDisplayedText('');
     setIsTyping(true);
     setIsComplete(false);
+    setHoveredLineIndex(null);
 
     // 타이핑 애니메이션 시작
     const typeNextChar = () => {
@@ -337,6 +343,16 @@ export function VNDialogueBox({
       return () => clearTimeout(timer);
     }
   }, [isComplete, currentEntry?.autoAdvance, handleAdvance]);
+
+  // 텍스트를 줄 단위로 분리 (문장 구분)
+  const textLines = useMemo(() => {
+    if (!displayedText) return [];
+    // 줄바꿈 또는 문장 부호(. ! ? 。) 뒤에서 분리
+    const lines = displayedText
+      .split(/(?<=[\.\!\?\。])\s+|(?<=\n)/)
+      .filter(line => line.trim().length > 0);
+    return lines.length > 0 ? lines : [displayedText];
+  }, [displayedText]);
 
   // 대화가 없으면 렌더링하지 않음
   if (!dialogue || !currentEntry) return null;
@@ -490,10 +506,40 @@ export function VNDialogueBox({
           />
 
           {/* 대사 텍스트 */}
-          <p className="text-base sm:text-lg md:text-xl leading-relaxed text-white/95 min-h-[4em] sm:min-h-[4.5em]">
-            {displayedText}
-            <TypingCursor visible={isTyping} />
-          </p>
+          <div className="text-base sm:text-lg md:text-xl leading-relaxed text-white/95 min-h-[4em] sm:min-h-[4.5em]">
+            {isComplete && textLines.length > 1 ? (
+              // 타이핑 완료 후: 줄 단위 호버 활성화
+              textLines.map((line, idx) => (
+                <span
+                  key={idx}
+                  className="inline transition-all duration-200 rounded-sm cursor-default"
+                  style={{
+                    backgroundColor: hoveredLineIndex === idx ? `${themeColor}30` : 'transparent',
+                    boxShadow: hoveredLineIndex === idx ? `inset 0 0 0 1px ${themeColor}40` : 'none',
+                    padding: hoveredLineIndex === idx ? '1px 4px' : '1px 0',
+                    margin: '0 2px',
+                  }}
+                  onMouseEnter={() => setHoveredLineIndex(idx)}
+                  onMouseLeave={() => setHoveredLineIndex(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // 라인 클릭 시 하이라이트 토글 (다시 클릭하면 해제)
+                    setHoveredLineIndex(prev => prev === idx ? null : idx);
+                    // 대화 진행은 막지 않음
+                  }}
+                >
+                  {line}
+                  {idx < textLines.length - 1 ? ' ' : ''}
+                </span>
+              ))
+            ) : (
+              // 타이핑 중이거나 단일 문장: 기존 방식
+              <>
+                {displayedText}
+                <TypingCursor visible={isTyping} />
+              </>
+            )}
+          </div>
 
           {/* 하단 UI 영역 */}
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">

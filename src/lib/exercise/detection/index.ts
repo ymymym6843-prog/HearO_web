@@ -51,7 +51,7 @@ const detectorRegistry: Partial<Record<ExerciseType, DetectorFactory>> = {
   seated_knee_lift: () => getLegRaiseDetector('seated_knee_lift'),
 
   // === 상체 운동 ===
-  standing_arm_raise_front: () => getArmRaiseDetector('standing_arm_raise_front'),
+  arm_raise_front: () => getArmRaiseDetector('arm_raise_front'),
   shoulder_abduction: () => getArmRaiseDetector('shoulder_abduction'),
   elbow_flexion: getElbowFlexionDetector,
   wall_push: getWallPushDetector,
@@ -73,7 +73,7 @@ const resetRegistry: Partial<Record<ExerciseType, () => void>> = {
   seated_knee_lift: () => resetLegRaiseDetector('seated_knee_lift'),
 
   // === 상체 운동 ===
-  standing_arm_raise_front: () => resetArmRaiseDetector('standing_arm_raise_front'),
+  arm_raise_front: () => resetArmRaiseDetector('arm_raise_front'),
   shoulder_abduction: () => resetArmRaiseDetector('shoulder_abduction'),
   elbow_flexion: resetElbowFlexionDetector,
   wall_push: resetWallPushDetector,

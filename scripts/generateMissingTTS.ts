@@ -4,7 +4,7 @@
  * Gemini TTS Edge Function을 사용하여 WAV 파일 생성
  *
  * 누락된 운동:
- * - standing_arm_raise_front (팔 앞으로 들기)
+ * - arm_raise_front (팔 앞으로 들기)
  * - shoulder_abduction (어깨 벌리기)
  * - elbow_flexion (팔꿈치 굽히기)
  * - wall_push (벽 밀기)
@@ -27,7 +27,7 @@ type WorldviewType = 'fantasy' | 'sports' | 'idol' | 'sf' | 'zombie' | 'spy';
 type GradeType = 'perfect' | 'good' | 'normal';
 
 const MISSING_EXERCISES = [
-  'standing_arm_raise_front',
+  'arm_raise_front',
   'shoulder_abduction',
   'elbow_flexion',
   'wall_push',

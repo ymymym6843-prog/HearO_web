@@ -33,7 +33,7 @@ export const POSE_EXERCISES: PoseExercise[] = [
   'standing_march_slow',
   'seated_knee_lift',
   // 상체 (4개)
-  'standing_arm_raise_front',
+  'arm_raise_front',
   'shoulder_abduction',
   'elbow_flexion',
   'wall_push',
@@ -79,7 +79,7 @@ export const EXERCISE_NAMES: Record<ExerciseType, string> = {
   seated_knee_lift: '앉아서 무릎 들기',
 
   // 상체 운동 (4개)
-  standing_arm_raise_front: '팔 앞으로 들기',
+  arm_raise_front: '팔 앞으로 들기',
   shoulder_abduction: '어깨 벌리기',
   elbow_flexion: '팔꿈치 굽히기',
   wall_push: '벽 밀기',
@@ -119,7 +119,7 @@ export const EXERCISE_ICONS: Record<ExerciseType, IconName> = {
   seated_knee_lift: 'body-outline',
 
   // 상체 운동 (4개)
-  standing_arm_raise_front: 'barbell-outline',
+  arm_raise_front: 'barbell-outline',
   shoulder_abduction: 'barbell-outline',
   elbow_flexion: 'barbell-outline',
   wall_push: 'hand-left-outline',
@@ -159,7 +159,7 @@ export const EXERCISE_BODY_PARTS: Record<ExerciseType, RehabBodyPart[]> = {
   seated_knee_lift: ['hip', 'knee', 'general'],
 
   // 상체 운동 (4개)
-  standing_arm_raise_front: ['shoulder', 'general'],
+  arm_raise_front: ['shoulder', 'general'],
   shoulder_abduction: ['shoulder', 'general'],
   elbow_flexion: ['elbow', 'shoulder', 'general'],
   wall_push: ['shoulder', 'elbow', 'general'],
@@ -197,7 +197,7 @@ export const EXERCISE_CATEGORIES: Record<ExerciseType, ExerciseCategory> = {
   straight_leg_raise: 'pose',
   standing_march_slow: 'pose',
   seated_knee_lift: 'pose',
-  standing_arm_raise_front: 'pose',
+  arm_raise_front: 'pose',
   shoulder_abduction: 'pose',
   elbow_flexion: 'pose',
   wall_push: 'pose',
@@ -227,7 +227,7 @@ export const EXERCISE_SUB_CATEGORIES: Record<ExerciseType, ExerciseSubCategory> 
   seated_knee_lift: 'lower_body',
 
   // 상체 운동
-  standing_arm_raise_front: 'upper_body',
+  arm_raise_front: 'upper_body',
   shoulder_abduction: 'upper_body',
   elbow_flexion: 'upper_body',
   wall_push: 'upper_body',
@@ -267,7 +267,7 @@ export const EXERCISE_DIFFICULTY: Record<ExerciseType, ExerciseDifficulty> = {
   seated_knee_lift: 'easy',
 
   // 상체 운동
-  standing_arm_raise_front: 'easy',
+  arm_raise_front: 'easy',
   shoulder_abduction: 'easy',
   elbow_flexion: 'easy',
   wall_push: 'easy',
@@ -307,7 +307,7 @@ export const EXERCISE_DETECTION_METHOD: Record<ExerciseType, DetectionMethod> = 
   seated_knee_lift: 'angle',
 
   // 상체 운동 (angle 기반)
-  standing_arm_raise_front: 'angle',
+  arm_raise_front: 'angle',
   shoulder_abduction: 'angle',
   elbow_flexion: 'angle',
   wall_push: 'distance',
@@ -341,7 +341,7 @@ export const EXERCISE_DETECTION_ENGINE: Record<ExerciseType, DetectionEngine> = 
   straight_leg_raise: 'mediapipe_pose',
   standing_march_slow: 'mediapipe_pose',
   seated_knee_lift: 'mediapipe_pose',
-  standing_arm_raise_front: 'mediapipe_pose',
+  arm_raise_front: 'mediapipe_pose',
   shoulder_abduction: 'mediapipe_pose',
   elbow_flexion: 'mediapipe_pose',
   wall_push: 'mediapipe_pose',
@@ -371,7 +371,7 @@ export const EXERCISE_STATE_MACHINE_MODE: Record<ExerciseType, StateMachineMode>
   seated_knee_lift: 'big_is_up',
 
   // 상체 운동
-  standing_arm_raise_front: 'big_is_up',
+  arm_raise_front: 'big_is_up',
   shoulder_abduction: 'big_is_up',
   elbow_flexion: 'big_is_down',
   wall_push: 'big_is_down',
@@ -407,7 +407,7 @@ export const EXERCISE_IMPLEMENTATION_LEVEL: Record<ExerciseType, ImplementationL
   seated_knee_lift: 'high',
 
   // 상체 운동
-  standing_arm_raise_front: 'high',
+  arm_raise_front: 'high',
   shoulder_abduction: 'high',
   elbow_flexion: 'high',
   wall_push: 'medium',
@@ -466,7 +466,7 @@ export const EXERCISE_DEFAULT_REPS: Record<ExerciseType, number> = {
   seated_knee_lift: 10,
 
   // 상체 운동
-  standing_arm_raise_front: 10,
+  arm_raise_front: 10,
   shoulder_abduction: 10,
   elbow_flexion: 10,
   wall_push: 10,

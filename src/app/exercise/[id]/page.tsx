@@ -89,7 +89,7 @@ const exerciseInfo: Partial<Record<ExerciseType, { koreanName: string; descripti
     targetReps: 10
   },
   // 상체 운동 (4개)
-  standing_arm_raise_front: {
+  arm_raise_front: {
     koreanName: '팔 앞으로 들기',
     description: '팔을 앞으로 들어올리기',
     targetReps: 10
@@ -142,7 +142,7 @@ const exerciseCameraOrientation: Partial<Record<ExerciseType, CameraOrientation>
   straight_leg_raise: 'landscape',
   standing_march_slow: 'portrait',
   seated_knee_lift: 'portrait',
-  standing_arm_raise_front: 'landscape',
+  arm_raise_front: 'landscape',
   shoulder_abduction: 'landscape',
   elbow_flexion: 'landscape',
   wall_push: 'landscape',
@@ -151,6 +151,17 @@ const exerciseCameraOrientation: Partial<Record<ExerciseType, CameraOrientation>
   standing_arm_raise_core: 'landscape',
   bridge: 'landscape',
 };
+
+// 위로 먼저 움직이는 운동 (big_is_up: MOVING = UP)
+// 이 운동들은 READY → UP → HOLD → DOWN → REST 순서
+const UPWARD_FIRST_EXERCISES = new Set<ExerciseType>([
+  'arm_raise_front',
+  'shoulder_abduction',
+  'straight_leg_raise',
+  'seated_knee_lift',
+  'standing_arm_raise_core',
+  'bridge',
+]);
 
 // 카메라 크기 계산 (PIP 모드)
 function getCameraDimensions(orientation: CameraOrientation, isPip: boolean) {
@@ -182,6 +193,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     targetSets,
     phase,
     accuracy,
+    progress,
     feedback,
     isActive,
     setExercise,
@@ -189,6 +201,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     incrementReps,
     setPhase,
     updateAccuracy,
+    updateProgress,
     updateAngle,
     setFeedback,
   } = useExerciseStore();
@@ -494,14 +507,16 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     sfxService.playExerciseSuccessSFX(currentWorldview);
   }, [currentWorldview]);
 
-  // 감지기 상태를 스토어 상태로 변환
+  // 감지기 상태를 스토어 상태로 변환 (운동 방향 반영)
+  const isUpwardFirst = UPWARD_FIRST_EXERCISES.has(exerciseId);
+
   const mapDetectorPhaseToStore = (detectorPhase: DetectorPhase): ExercisePhase => {
     const phaseMap: Record<DetectorPhase, ExercisePhase> = {
       'IDLE': 'ready',
       'READY': 'ready',
-      'MOVING': 'down',
+      'MOVING': isUpwardFirst ? 'up' : 'down',
       'HOLDING': 'hold',
-      'RETURNING': 'up',
+      'RETURNING': isUpwardFirst ? 'down' : 'up',
       'COOLDOWN': 'rest',
     };
     return phaseMap[detectorPhase] || 'ready';
@@ -553,6 +568,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     const storePhase = mapDetectorPhaseToStore(result.phase);
     setPhase(storePhase);
     updateAccuracy(result.accuracy);
+    updateProgress(result.progress);
     updateAngle(result.currentAngle);
     setFeedback(result.feedback);
 
@@ -562,7 +578,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
     if (isHoldExercise && result.holdProgress !== undefined) {
       setHoldTime(result.holdProgress * targetHoldTime);
     }
-  }, [isActive, setPhase, updateAccuracy, updateAngle, setFeedback, incrementReps, playSuccessSFX, targetReps, handleExerciseComplete, isHoldExercise, targetHoldTime, mediaPipeReady]);
+  }, [isActive, setPhase, updateAccuracy, updateProgress, updateAngle, setFeedback, incrementReps, playSuccessSFX, targetReps, handleExerciseComplete, isHoldExercise, targetHoldTime, mediaPipeReady]);
 
   // 종료
   const handleEnd = () => {
@@ -817,7 +833,10 @@ export default function ExercisePage({ params }: ExercisePageProps) {
           >
             <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">PHASE</p>
             <div className="flex flex-col gap-1">
-              {['ready', 'down', 'hold', 'up', 'rest'].map((p) => {
+              {(isUpwardFirst
+                ? ['ready', 'up', 'hold', 'down', 'rest']
+                : ['ready', 'down', 'hold', 'up', 'rest']
+              ).map((p) => {
                 const isCurrentPhase = phase === p;
                 const labels: Record<string, string> = {
                   ready: 'READY',
@@ -851,7 +870,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
             </div>
           </div>
 
-          {/* 하단 - 정확도 바 */}
+          {/* 하단 - ROM 진행 바 + 정확도 */}
           <div
             className="absolute bottom-4 left-4 right-4 px-4 py-3 rounded-xl backdrop-blur-sm"
             style={{
@@ -859,14 +878,26 @@ export default function ExercisePage({ params }: ExercisePageProps) {
               border: `1px solid ${colors.primary}40`,
             }}
           >
+            {/* ROM Progress + Accuracy 동시 표시 */}
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-400 uppercase tracking-wider">ACCURACY</span>
-              <span
-                className="text-sm font-bold"
-                style={{ color: accuracy >= 80 ? '#22C55E' : accuracy >= 50 ? '#F59E0B' : '#EF4444' }}
-              >
-                {Math.round(accuracy)}%
-              </span>
+              <span className="text-xs text-gray-400 uppercase tracking-wider">ROM</span>
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{
+                    backgroundColor: accuracy >= 80 ? '#22C55E20' : accuracy >= 50 ? '#F59E0B20' : '#EF444420',
+                    color: accuracy >= 80 ? '#22C55E' : accuracy >= 50 ? '#F59E0B' : '#EF4444',
+                  }}
+                >
+                  정확도 {Math.round(accuracy)}%
+                </span>
+                <span
+                  className="text-sm font-bold"
+                  style={{ color: colors.primary }}
+                >
+                  {Math.round(progress * 100)}%
+                </span>
+              </div>
             </div>
 
             <div
@@ -877,15 +908,11 @@ export default function ExercisePage({ params }: ExercisePageProps) {
               }}
             >
               <div
-                className="h-full rounded-full transition-all duration-500 relative"
+                className="h-full rounded-full transition-all duration-300 relative"
                 style={{
-                  width: `${accuracy}%`,
-                  background: accuracy >= 80
-                    ? 'linear-gradient(90deg, #22C55E, #16A34A)'
-                    : accuracy >= 50
-                    ? 'linear-gradient(90deg, #F59E0B, #D97706)'
-                    : 'linear-gradient(90deg, #EF4444, #DC2626)',
-                  boxShadow: `0 0 10px ${accuracy >= 80 ? '#22C55E' : accuracy >= 50 ? '#F59E0B' : '#EF4444'}80`,
+                  width: `${Math.round(progress * 100)}%`,
+                  background: `linear-gradient(90deg, ${colors.primary}CC, ${colors.primary})`,
+                  boxShadow: `0 0 10px ${colors.primary}80`,
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent rounded-full" />

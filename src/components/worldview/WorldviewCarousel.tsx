@@ -63,10 +63,13 @@ interface WorldviewCarouselProps {
 export function WorldviewCarousel({ onSelect, selectedWorldview }: WorldviewCarouselProps) {
   const worldviews = getAllWorldviews();
   const [hoveredId, setHoveredId] = useState<WorldviewId | null>(null);
+  const [comingSoonWorld, setComingSoonWorld] = useState<Worldview | null>(null);
 
   const handleSelect = useCallback((worldview: Worldview) => {
     if (worldview.available) {
       onSelect(worldview.id);
+    } else {
+      setComingSoonWorld(worldview);
     }
   }, [onSelect]);
 
@@ -91,11 +94,10 @@ export function WorldviewCarousel({ onSelect, selectedWorldview }: WorldviewCaro
                 onClick={() => handleSelect(worldview)}
                 onMouseEnter={() => setHoveredId(worldview.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                disabled={!isActive}
                 className={`
                   relative w-full aspect-[4/5] rounded-2xl overflow-hidden
-                  transition-all duration-300 group
-                  ${isActive ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}
+                  transition-all duration-300 group cursor-pointer
+                  ${!isActive ? 'opacity-60' : ''}
                   ${isSelected ? 'ring-4 ring-offset-2 ring-offset-hearo-bg' : ''}
                 `}
                 style={{
@@ -209,6 +211,108 @@ export function WorldviewCarousel({ onSelect, selectedWorldview }: WorldviewCaro
             <p className="text-hearo-text/80 leading-relaxed">
               {WORLDVIEWS[selectedWorldview].description}
             </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Coming Soon 모달 */}
+      <AnimatePresence>
+        {comingSoonWorld && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setComingSoonWorld(null)}
+          >
+            {/* 배경 딤 */}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+            {/* 모달 */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+              style={{
+                background: `linear-gradient(135deg, ${comingSoonWorld.colors.gradient[0]}, ${comingSoonWorld.colors.gradient[1]})`,
+                border: `1px solid ${comingSoonWorld.colors.primary}40`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 상단 장식 바 */}
+              <div
+                className="h-1.5 w-full"
+                style={{ background: `linear-gradient(90deg, ${comingSoonWorld.colors.primary}, ${comingSoonWorld.colors.secondary})` }}
+              />
+
+              <div className="p-6">
+                {/* 아이콘 + 잠금 */}
+                <div className="flex justify-center mb-4">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center relative"
+                    style={{ backgroundColor: `${comingSoonWorld.colors.primary}20` }}
+                  >
+                    <WorldviewIcon
+                      name={comingSoonWorld.iconName}
+                      className="w-8 h-8"
+                      style={{ color: comingSoonWorld.colors.primary }}
+                    />
+                    <div
+                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: comingSoonWorld.colors.primary }}
+                    >
+                      <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 제목 */}
+                <h3
+                  className="text-xl font-bold text-center mb-1"
+                  style={{ color: comingSoonWorld.colors.primary }}
+                >
+                  {comingSoonWorld.name}
+                </h3>
+                <p className="text-center text-white/50 text-sm mb-4">
+                  {comingSoonWorld.subtitle}
+                </p>
+
+                {/* 설명 */}
+                <p className="text-white/70 text-sm leading-relaxed text-center mb-5">
+                  {comingSoonWorld.description}
+                </p>
+
+                {/* Coming Soon 뱃지 */}
+                <div className="flex justify-center mb-5">
+                  <div
+                    className="px-4 py-2 rounded-full text-sm font-bold tracking-wider"
+                    style={{
+                      backgroundColor: `${comingSoonWorld.colors.primary}20`,
+                      color: comingSoonWorld.colors.primary,
+                      border: `1px solid ${comingSoonWorld.colors.primary}40`,
+                    }}
+                  >
+                    COMING SOON
+                  </div>
+                </div>
+
+                {/* 닫기 버튼 */}
+                <button
+                  onClick={() => setComingSoonWorld(null)}
+                  className="w-full py-3 rounded-xl text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: `${comingSoonWorld.colors.primary}20`,
+                    color: comingSoonWorld.colors.primary,
+                  }}
+                >
+                  확인
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -2,7 +2,7 @@
  * 팔 들기 감지기 (ArmRaiseDetector)
  *
  * 대상 운동:
- * - standing_arm_raise_front: 팔 앞으로 들기 (0° → 180°)
+ * - arm_raise_front: 팔 앞으로 들기 (0° → 180°)
  * - shoulder_abduction: 어깨 벌리기 (0° → 90°)
  * - standing_arm_raise_core: 코어 유지하며 팔 들기 (0° → 180°)
  *
@@ -27,8 +27,8 @@ interface ArmRaiseConfig {
 }
 
 const ARM_RAISE_CONFIGS: Record<string, ArmRaiseConfig> = {
-  standing_arm_raise_front: {
-    exerciseType: 'standing_arm_raise_front',
+  arm_raise_front: {
+    exerciseType: 'arm_raise_front',
     startAngle: 20,
     targetAngle: 160,
     tolerance: 20,
@@ -56,14 +56,14 @@ export class ArmRaiseDetector extends BaseDetector {
   private useAverageBothArms = true;
   private previousSpineAngle: number = 0;  // 코어 체크용
 
-  constructor(exerciseType: ExerciseType = 'standing_arm_raise_front') {
+  constructor(exerciseType: ExerciseType = 'arm_raise_front') {
     super(exerciseType, 'shoulder', {
       minCooldown: 500,
       maxCooldown: 1500,
       adaptiveScale: 0.4,
     });
 
-    this.config = ARM_RAISE_CONFIGS[exerciseType] || ARM_RAISE_CONFIGS.standing_arm_raise_front;
+    this.config = ARM_RAISE_CONFIGS[exerciseType] || ARM_RAISE_CONFIGS.arm_raise_front;
 
     // 임계값 설정 (big_is_up 모드: 값이 클수록 UP)
     this.thresholds = {
@@ -251,7 +251,7 @@ export class ArmRaiseDetector extends BaseDetector {
 // 팩토리 함수들
 const armRaiseDetectors: Map<ExerciseType, ArmRaiseDetector> = new Map();
 
-export function getArmRaiseDetector(exerciseType: ExerciseType = 'standing_arm_raise_front'): ArmRaiseDetector {
+export function getArmRaiseDetector(exerciseType: ExerciseType = 'arm_raise_front'): ArmRaiseDetector {
   if (!armRaiseDetectors.has(exerciseType)) {
     armRaiseDetectors.set(exerciseType, new ArmRaiseDetector(exerciseType));
   }

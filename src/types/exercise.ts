@@ -21,7 +21,7 @@ export type LowerBodyExercise =
 
 // 상체 운동 (4개)
 export type UpperBodyExercise =
-  | "standing_arm_raise_front" // 팔 앞으로 들기
+  | "arm_raise_front" // 팔 앞으로 들기
   | "shoulder_abduction"       // 어깨 벌리기
   | "elbow_flexion"            // 팔꿈치 굽히기 (재활형 컬)
   | "wall_push";               // 벽 밀기

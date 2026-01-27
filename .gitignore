@@ -47,3 +47,6 @@ coverage/
 
 # Backups
 public/images/worldviews/backups/
+
+.vercel
+.env*.local

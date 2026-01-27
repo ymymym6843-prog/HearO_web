@@ -17,7 +17,7 @@ const EXERCISE_KOREAN_NAMES: Partial<Record<ExerciseType, string>> = {
   straight_leg_raise: '누워서 다리 들기',
   standing_march_slow: '서서 천천히 행진',
   seated_knee_lift: '앉아서 무릎 들기',
-  standing_arm_raise_front: '팔 앞으로 들기',
+  arm_raise_front: '팔 앞으로 들기',
   shoulder_abduction: '어깨 벌리기',
   elbow_flexion: '팔꿈치 굽히기',
   wall_push: '벽 밀기',

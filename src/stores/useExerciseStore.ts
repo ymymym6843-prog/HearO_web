@@ -18,6 +18,7 @@ interface ExerciseState {
   // 동작 상태
   phase: ExercisePhase;
   accuracy: number;
+  progress: number; // 0-1: ROM 기반 실시간 이동률
   currentAngle: number;
 
   // 피드백
@@ -36,6 +37,7 @@ interface ExerciseState {
   incrementSets: () => void;
   setPhase: (phase: ExercisePhase) => void;
   updateAccuracy: (accuracy: number) => void;
+  updateProgress: (progress: number) => void;
   updateAngle: (angle: number) => void;
   setFeedback: (feedback: string | null) => void;
 
@@ -51,6 +53,7 @@ export const useExerciseStore = create<ExerciseState>((set, get) => ({
   targetSets: 3,
   phase: 'ready',
   accuracy: 0,
+  progress: 0,
   currentAngle: 0,
   feedback: null,
   isActive: false,
@@ -68,6 +71,7 @@ export const useExerciseStore = create<ExerciseState>((set, get) => ({
     targetSets,
     phase: 'ready',
     accuracy: 0,
+    progress: 0,
     feedback: null,
   }),
 
@@ -112,6 +116,8 @@ export const useExerciseStore = create<ExerciseState>((set, get) => ({
 
   updateAccuracy: (accuracy) => set({ accuracy }),
 
+  updateProgress: (progress) => set({ progress }),
+
   updateAngle: (angle) => set({ currentAngle: angle }),
 
   setFeedback: (feedback) => set({ feedback }),
@@ -121,6 +127,7 @@ export const useExerciseStore = create<ExerciseState>((set, get) => ({
     currentSet: 1,
     phase: 'ready',
     accuracy: 0,
+    progress: 0,
     currentAngle: 0,
     feedback: null,
     isActive: false,

@@ -305,12 +305,19 @@ export async function playGeminiTTS(
       resolve();
     };
 
-    audio.onerror = (e) => {
+    audio.onerror = () => {
       URL.revokeObjectURL(audioUrl);
-      reject(new Error(`Audio playback error: ${e}`));
+      const mediaError = audio.error;
+      const errorMsg = mediaError
+        ? `Audio playback error: code=${mediaError.code}, ${mediaError.message}`
+        : 'Audio playback error: unknown';
+      reject(new Error(errorMsg));
     };
 
-    audio.play().catch(reject);
+    audio.play().catch((err) => {
+      URL.revokeObjectURL(audioUrl);
+      reject(err);
+    });
   });
 }
 

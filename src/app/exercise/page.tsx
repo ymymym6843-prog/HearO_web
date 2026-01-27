@@ -125,8 +125,8 @@ const bodyExercises: ExerciseInfo[] = [
 
   // === 상체 운동 (4개) ===
   {
-    id: 'standing_arm_raise_front',
-    name: 'Standing Arm Raise Front',
+    id: 'arm_raise_front',
+    name: 'Arm Raise Front',
     koreanName: '팔 앞으로 들기',
     description: '팔을 앞으로 들어올리기',
     category: 'upper',
