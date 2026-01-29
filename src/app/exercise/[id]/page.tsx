@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, use, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useWorldStore } from '@/stores/useWorldStore';
@@ -185,8 +185,10 @@ interface ExercisePageProps {
 
 export default function ExercisePage({ params }: ExercisePageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const resolvedParams = use(params);
   const exerciseId = resolvedParams.id as ExerciseType;
+  const romDebugEnabled = searchParams.get('romDebug') === 'true';
 
   const { currentWorldview, isFirstVisit, markVisited } = useWorldStore();
   const { getProgress, advanceEpisode } = useStoryProgressStore();
@@ -303,6 +305,13 @@ export default function ExercisePage({ params }: ExercisePageProps) {
         detectorRef.current = getDetectorForExercise(exerciseId);
         lastRepCountRef.current = 0;
         accumulatedAccuracyRef.current = [];
+
+        // ROM 디버그 모드 활성화 (URL: ?romDebug=true)
+        if (romDebugEnabled && detectorRef.current) {
+          detectorRef.current.setDebugMode(true);
+          console.log('[ROM-Debug] Enabled via URL parameter');
+        }
+
         return null;
       } catch (error) {
         console.error('감지기 초기화 실패:', error);
@@ -321,7 +330,7 @@ export default function ExercisePage({ params }: ExercisePageProps) {
       resetDetector(exerciseId);
       detectorRef.current = null;
     };
-  }, [exerciseId, setExercise]);
+  }, [exerciseId, setExercise, romDebugEnabled]);
 
   // 페이지 로드 시 intro phase로 시작 + 대화 시작 + BGM 시작
   useEffect(() => {
