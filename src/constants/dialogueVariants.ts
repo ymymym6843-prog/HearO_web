@@ -163,7 +163,9 @@ export function getContextualGreeting(
 
   // 3. 에피소드별 변형 인사
   const greetings = EPISODE_GREETINGS[worldview];
-  const greetingIdx = (context.totalSessions - 1) % greetings.length;
+  // totalSessions가 0이거나 음수일 때 방어 처리
+  const safeTotal = Math.max(1, context.totalSessions);
+  const greetingIdx = (safeTotal - 1) % greetings.length;
   const greetingText = greetings[greetingIdx](context);
 
   entries.push({

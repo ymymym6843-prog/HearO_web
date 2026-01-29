@@ -143,7 +143,6 @@ async function synthesizeSpeechWithModel(
                 voiceName: request.voiceName || DEFAULT_VOICE,
               },
             },
-            speakingRate: request.speakingRate || 1.0,
           },
         },
       }),
