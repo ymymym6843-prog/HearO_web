@@ -40,6 +40,62 @@ const ENCODING_MIME_MAP: Record<AudioEncoding, string> = {
   OGG_OPUS: 'audio/ogg',
 };
 
+/**
+ * PCM 데이터를 WAV 형식으로 변환 (헤더 추가)
+ * @param pcmBase64 - Base64 인코딩된 PCM 데이터
+ * @param sampleRate - 샘플 레이트 (기본 24000Hz)
+ * @param numChannels - 채널 수 (기본 1 = 모노)
+ * @param bitsPerSample - 비트 깊이 (기본 16bit)
+ */
+function pcmToWav(
+  pcmBase64: string,
+  sampleRate: number = 24000,
+  numChannels: number = 1,
+  bitsPerSample: number = 16
+): string {
+  // Base64 → Uint8Array
+  const pcmBytes = Uint8Array.from(atob(pcmBase64), c => c.charCodeAt(0));
+  const pcmLength = pcmBytes.length;
+
+  // WAV 헤더 (44 bytes)
+  const wavHeader = new ArrayBuffer(44);
+  const view = new DataView(wavHeader);
+
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+
+  // RIFF chunk
+  view.setUint32(0, 0x52494646, false); // "RIFF"
+  view.setUint32(4, 36 + pcmLength, true); // File size - 8
+  view.setUint32(8, 0x57415645, false); // "WAVE"
+
+  // fmt chunk
+  view.setUint32(12, 0x666D7420, false); // "fmt "
+  view.setUint32(16, 16, true); // Subchunk1 size (16 for PCM)
+  view.setUint16(20, 1, true); // Audio format (1 = PCM)
+  view.setUint16(22, numChannels, true); // Number of channels
+  view.setUint32(24, sampleRate, true); // Sample rate
+  view.setUint32(28, byteRate, true); // Byte rate
+  view.setUint16(32, blockAlign, true); // Block align
+  view.setUint16(34, bitsPerSample, true); // Bits per sample
+
+  // data chunk
+  view.setUint32(36, 0x64617461, false); // "data"
+  view.setUint32(40, pcmLength, true); // Data size
+
+  // 헤더 + PCM 데이터 결합
+  const wavBytes = new Uint8Array(44 + pcmLength);
+  wavBytes.set(new Uint8Array(wavHeader), 0);
+  wavBytes.set(pcmBytes, 44);
+
+  // Base64로 변환
+  let binary = '';
+  for (let i = 0; i < wavBytes.length; i++) {
+    binary += String.fromCharCode(wavBytes[i]);
+  }
+  return btoa(binary);
+}
+
 /** 요청 타입 */
 interface GeminiTTSRequest {
   text: string;
@@ -177,15 +233,30 @@ async function synthesizeSpeechWithModel(
     return { success: false, error: 'No audio content returned', modelUsed: model };
   }
 
-  // mimeType 결정: 클라이언트 요청 인코딩 > API 반환값 > 기본값
-  const requestedEncoding = request.audioEncoding || 'MP3';
-  const resolvedMimeType = audioData.mimeType || ENCODING_MIME_MAP[requestedEncoding] || 'audio/mp3';
+  // mimeType 확인 및 PCM → WAV 변환
+  const apiMimeType = audioData.mimeType || '';
+  let finalAudioContent = audioData.data;
+  let finalMimeType = apiMimeType;
 
-  console.log(`[gemini-tts] Success with model: ${model}, mimeType: ${resolvedMimeType}`);
+  // PCM 형식 감지 (audio/L16, audio/pcm 등)
+  if (apiMimeType.includes('L16') || apiMimeType.includes('pcm')) {
+    console.log(`[gemini-tts] Converting PCM to WAV (original: ${apiMimeType})`);
+
+    // sample rate 추출 (예: audio/L16;codec=pcm;rate=24000)
+    const rateMatch = apiMimeType.match(/rate=(\d+)/);
+    const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+
+    finalAudioContent = pcmToWav(audioData.data, sampleRate);
+    finalMimeType = 'audio/wav';
+  } else if (!apiMimeType || apiMimeType === 'audio/mp3' || apiMimeType === 'audio/mpeg') {
+    finalMimeType = 'audio/mp3';
+  }
+
+  console.log(`[gemini-tts] Success with model: ${model}, mimeType: ${finalMimeType}`);
   return {
     success: true,
-    audioContent: audioData.data,
-    mimeType: resolvedMimeType,
+    audioContent: finalAudioContent,
+    mimeType: finalMimeType,
     modelUsed: model,
   };
 }

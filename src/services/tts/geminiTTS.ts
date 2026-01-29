@@ -284,13 +284,21 @@ export async function generateGeminiTTS(
       throw new Error('Audio content too small, likely error response');
     }
 
-    // MP3 시그니처 검증: ID3 태그(49 44 33) 또는 MPEG 프레임 동기(FF FB/FA/F3/F2)
+    // 오디오 시그니처 검증
     if (mimeType.includes('mp3') || mimeType.includes('mpeg')) {
+      // MP3: ID3 태그(49 44 33) 또는 MPEG 프레임 동기(FF FB/FA/F3/F2)
       const isID3 = bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33;
       const isMPEGSync = bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0;
       if (!isID3 && !isMPEGSync) {
         log.error('Invalid MP3 header signature', { byteLength: bytes.length, mimeType, headerHex });
         throw new Error('Audio data does not have valid MP3 header');
+      }
+    } else if (mimeType.includes('wav')) {
+      // WAV: RIFF 헤더 검증 (52 49 46 46)
+      const isRIFF = bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
+      if (!isRIFF) {
+        log.error('Invalid WAV header signature', { byteLength: bytes.length, mimeType, headerHex });
+        throw new Error('Audio data does not have valid WAV header');
       }
     }
 
