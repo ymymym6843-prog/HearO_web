@@ -20,9 +20,10 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - **TypeScript Errors**: 0
 - **ESLint Warnings**: 0 ✨
 - **Build**: Successful (20 static pages)
-- **Last Updated**: 2026-01-27
+- **Last Updated**: 2026-01-29
 
 ### Recent Major Updates
+- **ROM 디버그 로깅**: BaseDetector/HoldDetector에 프레임/전환/완료 로깅 추가, 캘리브레이션 상태 문서화
 - **스토리 시스템 대폭 개선**: 세계관 온보딩, 챕터/에피소드 진행, 반복 플레이 차별화, 엔딩 분기 확장
 - **Gemini TTS 코덱 에러 수정**: MP3 시그니처 검증, Base64 디코딩 방어, Edge Function 오디오 크기 검증
 - **Supabase 프로젝트 분리**: HearO_web 전용 프로젝트(ybjzuaglgxtsamfqmjrt) 분리, Vercel 환경변수 업데이트
@@ -197,6 +198,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 - [x] **ESLint 경고 완전 제거 (0 warnings)**
 - [x] **코드 품질 최적화** (unused variables, dependencies)
 - [x] ESLint 에러 완전 해결 (React Compiler 호환)
+- [x] **ROM 디버그 로깅** (BaseDetector/HoldDetector, 3중 가드 + 30fps 스로틀링)
 
 ### Remaining Tasks
 - [ ] Mobile performance optimization (target: 30fps)
@@ -286,6 +288,7 @@ HearO Web is a gamified rehabilitation exercise platform that combines VRM 3D av
 1. **VRM Loading**: Currently loads full model on each scene
 2. **Offline Mode**: Limited offline functionality
 3. **Test Coverage**: Unit tests needed for core services
+4. **캘리브레이션 미연결**: CalibrationManager, CalibrationOverlay, useCalibrationStore, calibrationService 모두 구현됨, 그러나 운동 페이지에서 detector.applyCalibration() 미호출. 모든 사용자가 하드코딩된 고정 ROM 기준 사용 중. 연결 시 3줄 추가 필요.
 
 ### Recently Resolved
 - ~~**Gemini TTS 코덱 에러**~~: MP3 시그니처 검증 + Base64 atob 방어 + Edge Function 크기 검증 일관화
@@ -311,4 +314,4 @@ See [TASK_LIST.md](./TASK_LIST.md) for detailed task breakdown and contribution 
 
 ---
 
-*Last updated: 2026-01-27*
+*Last updated: 2026-01-29*

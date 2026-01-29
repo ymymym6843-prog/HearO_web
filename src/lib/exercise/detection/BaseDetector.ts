@@ -11,6 +11,7 @@
 import type { Landmark } from '@/types/pose';
 import type { ExerciseType, JointType } from '@/types/exercise';
 import type { CalibrationResult, ThresholdResult } from '@/types/calibration';
+import { createLogger } from '@/lib/logger';
 
 // 타입과 유틸리티는 분리된 파일에서 import
 import {
@@ -27,6 +28,10 @@ import {
   VISIBILITY_THRESHOLD,
   FRAME_HOLD_THRESHOLD,
 } from './utils';
+
+// ROM 디버그 로거
+const romLogger = createLogger('ROM-Debug');
+const ROM_DEBUG_LOG_INTERVAL = 30; // ~1초 간격 (30fps 기준)
 
 // 기존 타입들 re-export (하위 호환성)
 export type { ExercisePhase, PhaseTransition, DetectionResult, CooldownConfig };
@@ -70,6 +75,10 @@ export abstract class BaseDetector {
   // 통계
   protected repAccuracies: number[] = [];
 
+  // ROM 디버그 로깅
+  protected _romDebugEnabled: boolean = false;
+  protected _debugFrameCount: number = 0;
+
   constructor(
     exerciseType: ExerciseType,
     jointType: JointType,
@@ -88,6 +97,7 @@ export abstract class BaseDetector {
     this.thresholds = calibration.thresholds;
     this.requiredHoldTime = calibration.settings.holdTime;
     this.hasCalibration = true;
+    this._logConfigSnapshot('calibration-applied');
   }
 
   /**
@@ -107,6 +117,8 @@ export abstract class BaseDetector {
     this.angleFilter.reset();
     this.frameHoldCount = 0;
     this.pendingTransition = null;
+    // ROM 디버그 리셋
+    this._debugFrameCount = 0;
   }
 
   /**
@@ -128,6 +140,10 @@ export abstract class BaseDetector {
 
     // 2. MVP: 각도 스무딩 (5프레임 이동 평균)
     const angle = this.angleFilter.add(rawAngle);
+
+    // ROM 디버그 로깅
+    this._debugFrameCount++;
+    this._logFrameDebug(rawAngle, angle, confidence);
 
     // 3. 각도 속도 계산 (움직임 감지용)
     this.angleVelocity = angle - this.previousAngle;
@@ -287,6 +303,9 @@ export abstract class BaseDetector {
     this.currentPhase = newPhase;
     this.phaseStartTime = Date.now();
 
+    // ROM 디버그 로깅
+    this._logTransitionDebug(transition);
+
     return transition;
   }
 
@@ -306,6 +325,9 @@ export abstract class BaseDetector {
 
     // 카운트 증가
     this.repCount++;
+
+    // ROM 디버그 로깅
+    this._logRepCompleteDebug(angle, confidence, accuracy);
   }
 
   /**
@@ -508,6 +530,121 @@ export abstract class BaseDetector {
    */
   hasCalibrationApplied(): boolean {
     return this.hasCalibration;
+  }
+
+  // ============ ROM 디버그 API ============
+
+  /**
+   * ROM 디버그 모드 설정
+   * 활성화 시 설정 스냅샷 자동 출력
+   */
+  setDebugMode(enabled: boolean): void {
+    this._romDebugEnabled = enabled;
+    if (enabled) {
+      this._logConfigSnapshot('debug-enabled');
+    }
+  }
+
+  /**
+   * ROM 디버그 모드 상태 확인
+   */
+  isDebugMode(): boolean {
+    return this._romDebugEnabled;
+  }
+
+  // ============ ROM 디버그 로깅 헬퍼 ============
+
+  /**
+   * 프레임 디버그 로깅 (스로틀링 적용)
+   */
+  protected _logFrameDebug(rawAngle: number, smoothedAngle: number, confidence: number): void {
+    if (!this._romDebugEnabled) return;
+    if (this._debugFrameCount % ROM_DEBUG_LOG_INTERVAL !== 0) return;
+
+    const progress = this.calculateProgress(smoothedAngle);
+    romLogger.debug('[ROM:Frame]', {
+      exercise: this.exerciseType,
+      joint: this.jointType,
+      raw: parseFloat(rawAngle.toFixed(1)),
+      smoothed: parseFloat(smoothedAngle.toFixed(1)),
+      phase: this.currentPhase,
+      confidence: parseFloat(confidence.toFixed(2)),
+      progress: parseFloat(progress.toFixed(2)),
+      calibrated: this.hasCalibration,
+      frame: this._debugFrameCount,
+    });
+  }
+
+  /**
+   * 상태 전환 디버그 로깅
+   */
+  protected _logTransitionDebug(transition: PhaseTransition): void {
+    if (!this._romDebugEnabled) return;
+
+    romLogger.debug('[ROM:Transition]', {
+      exercise: this.exerciseType,
+      from: transition.from,
+      to: transition.to,
+      reason: transition.reason,
+      angle: parseFloat(this.previousAngle.toFixed(1)),
+      frame: this._debugFrameCount,
+    });
+  }
+
+  /**
+   * 반복 완료 디버그 로깅 (ROM 검증 포함)
+   */
+  protected _logRepCompleteDebug(angle: number, _confidence: number, accuracy: number): void {
+    if (!this._romDebugEnabled) return;
+
+    const startAngle = this.thresholds.startAngle.center;
+    const targetAngle = this.thresholds.targetAngle;
+    const totalROM = this.thresholds.totalROM || Math.abs(targetAngle - startAngle);
+    const actualROM = Math.abs(angle - startAngle);
+    const romRatio = totalROM > 0 ? actualROM / totalROM : 0;
+    const progress = this.calculateProgress(angle);
+    const romPass = progress >= 0.8;
+
+    const rationale = romPass
+      ? `PASS: progress=${progress.toFixed(2)}>=0.8, accuracy=${accuracy.toFixed(1)}%`
+      : `FAIL: progress=${progress.toFixed(2)}<0.8`;
+
+    romLogger.debug('[ROM:Rep]', {
+      exercise: this.exerciseType,
+      joint: this.jointType,
+      rep: this.repCount,
+      accuracy: parseFloat(accuracy.toFixed(1)),
+      actualROM: parseFloat(actualROM.toFixed(1)),
+      targetROM: parseFloat(totalROM.toFixed(1)),
+      romRatio: parseFloat(romRatio.toFixed(2)),
+      startAngle: parseFloat(startAngle.toFixed(1)),
+      targetAngle: parseFloat(targetAngle.toFixed(1)),
+      romPass,
+      rationale,
+      calibrated: this.hasCalibration,
+    });
+  }
+
+  /**
+   * 설정 스냅샷 디버그 로깅
+   */
+  protected _logConfigSnapshot(trigger: string): void {
+    if (!this._romDebugEnabled) return;
+
+    romLogger.debug('[ROM:Config]', {
+      trigger,
+      exercise: this.exerciseType,
+      joint: this.jointType,
+      calibrated: this.hasCalibration,
+      thresholds: {
+        startAngle: this.thresholds.startAngle,
+        targetAngle: this.thresholds.targetAngle,
+        completionThreshold: this.thresholds.completionThreshold,
+        returnThreshold: this.thresholds.returnThreshold,
+        totalROM: this.thresholds.totalROM,
+      },
+      requiredHoldTime: this.requiredHoldTime,
+    });
   }
 }
 

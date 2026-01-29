@@ -164,6 +164,10 @@ export class HoldDetector extends BaseDetector {
     const smoothedAngle = this.angleFilter.add(angle);
     const now = Date.now();
 
+    // ROM 디버그 로깅
+    this._debugFrameCount++;
+    this._logFrameDebug(angle, smoothedAngle, confidence);
+
     // 목표 자세 범위 내인지 확인
     const inTargetPosition = this.isInTargetRange(smoothedAngle);
 
@@ -202,6 +206,8 @@ export class HoldDetector extends BaseDetector {
           this.holdPhase = 'COMPLETED';
           this.repCount++;
           this.currentPhase = 'COOLDOWN';
+          // ROM 디버그 로깅
+          this._logRepCompleteDebug(smoothedAngle, confidence, inTargetPosition ? 100 : 0);
         }
         break;
 
